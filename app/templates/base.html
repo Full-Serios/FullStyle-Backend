@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}{% endblock %}</title>
+</head>
+<body>
+    <nav>
+        <a href="{{ url_for('main.home') }}" class="navbar-brand">Home</a>
+        <a href="{{ url_for('main.about') }}" class="navbar-brand">About</a>
+    </nav>
+    {% block content %}{% endblock %}
+</body>
+</html>
