@@ -1,6 +1,4 @@
-from src import create_app
-
-app = create_app()
+from config.server_config import run_server
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    run_server()
