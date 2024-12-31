@@ -30,6 +30,10 @@ class WorkerModel(db.Model):
             'site_manager_id': self.site_manager_id
         }
     
+    def save_to_db(self):
+        db.session.add(self)
+        db.session.commit()
+    
     @classmethod
     def get_all_workers(cls):
         workers = cls.query.all()

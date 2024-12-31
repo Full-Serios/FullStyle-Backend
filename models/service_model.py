@@ -27,6 +27,10 @@ class ServiceModel(db.Model):
             'duration': self.duration
         }
     
+    def save_to_db(self):
+        db.session.add(self)
+        db.session.commit()
+    
     @classmethod
     def get_all_services(cls):
         services = cls.query.all()

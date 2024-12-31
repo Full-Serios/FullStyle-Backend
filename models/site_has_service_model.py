@@ -21,6 +21,10 @@ class SiteHasServiceModel(db.Model):
             'service_id': self.service_id
         }
     
+    def save_to_db(self):
+        db.session.add(self)
+        db.session.commit()
+    
     @classmethod
     def get_all_site_services(cls):
         site_services = cls.query.all()

@@ -18,6 +18,10 @@ class WorkerHasServiceModel(db.Model):
             'service_id': self.service_id
         }
     
+    def save_to_db(self):
+        db.session.add(self)
+        db.session.commit()
+    
     @classmethod
     def get_all_worker_services(cls):
         worker_services = cls.query.all()
