@@ -8,15 +8,15 @@ import utils.encryption as encryption
 
 
 class UserModel(db.Model):
-    __tablename__ = "usuario"
+    __tablename__ = "userr"
 
     # Attributes
     id = db.Column("id", db.Integer, primary_key=True)
-    name = db.Column("nombre", db.String(100), nullable=False)
-    email = db.Column("correo", db.String(150), nullable=False, unique=True)
-    password = db.Column("contrasena", db.String(255), nullable=False)
+    name = db.Column("name", db.String(100), nullable=False)
+    email = db.Column("email", db.String(150), nullable=False, unique=True)
+    password = db.Column("password", db.String(255), nullable=False)
 
-    # is_active = db.Column("is_active", db.Boolean, nullable=False, default=True)
+    # is_active = db.Column("activo", db.Boolean, nullable=False, default=True)
 
     # Methods
     def __init__(self, email, name, password):

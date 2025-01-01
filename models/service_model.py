@@ -2,13 +2,13 @@ from config.server_config import db
 
 class ServiceModel(db.Model):
     # Para manejar tablas usando ORM
-    __tablename__ = 'servicio'
+    __tablename__ = 'service'
 
     id = db.Column("id", db.Integer, primary_key=True)
-    name = db.Column("nombre", db.String(100), nullable=False)
-    description = db.Column("descripcion", db.String, nullable=True)
-    price = db.Column("precio", db.Float, nullable=False)
-    duration = db.Column("duracion", db.Integer, nullable=False)
+    name = db.Column("name", db.String(100), nullable=False)
+    description = db.Column("description", db.String, nullable=True)
+    price = db.Column("price", db.Float, nullable=False)
+    duration = db.Column("duration", db.Integer, nullable=False)
 
     # Constructor y funciones asociadas con la clase
     def __init__(self, id, name, description, price, duration) -> None:
