@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-# PostgreSQL maneja tipo Decimal, para no causar problemas al serializar a JSON, se convierte a float
+# PostgreSQL handles Decimal type, to avoid problems when serializing to JSON, it is converted to float
 def convert_decimal_to_float(data): 
     if isinstance(data, Decimal):
         return float(data)
