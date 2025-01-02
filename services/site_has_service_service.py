@@ -22,7 +22,7 @@ class SiteHasService(Resource):
         site_service = SiteHasServiceModel(data['site_id'], data['site_manager_id'], data['service_id'])
         try:
             site_service.save_to_db()
-        except:
-            return {"message": "An error occurred inserting the site-service relationship."}, 500
+        except Exception as e:
+            return {"message": f"An error occurred inserting the site-service relationship: {str(e)}"}, 500
 
         return site_service.json(), 201

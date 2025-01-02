@@ -8,7 +8,7 @@ class WorkerModel(db.Model):
     name = db.Column("name", db.String(100), nullable=False)
     availability = db.Column("availability", db.JSON, nullable=True)
     busy = db.Column("busy", db.Boolean, nullable=True)
-    site_id = db.Column("site_id", db.Integer, nullable=False)
+    site_id = db.Column("site_id", db.Integer, db.ForeignKey('site.id'), nullable=False)
     site_manager_id = db.Column("site_manager_id", db.Integer, nullable=False)
 
     # Constructor and associated functions with the class

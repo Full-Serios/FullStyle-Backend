@@ -34,7 +34,7 @@ class WorkerHasService(Resource):
         worker_service = WorkerHasServiceModel(data['worker_id'], data['service_id'])
         try:
             worker_service.save_to_db()
-        except:
-            return {"message": "An error occurred inserting the worker-service relationship."}, 500
+        except Exception as e:
+            return {"message": f"An error occurred inserting the worker-service relationship: {str(e)}"}, 500
 
         return worker_service.json(), 201
