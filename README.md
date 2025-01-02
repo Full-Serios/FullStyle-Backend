@@ -1,22 +1,10 @@
 # Full-Style Backend
 
 ### Instrucciones
-Se crea el entorno virtual
+Se inicia la aplicación utilizando Docker
 ```bash
-py -3 -m venv .venv
-```
-Se activa el entorno virtual
-```bash
-.venv\Scripts\activate
-```
-Se instalan las dependencias
-```bash
-pip install -r requirements.txt
-```
-Se inicia la aplicación
-```bash
-python app.py
+docker-compose up --build
 ```
 La app se desplegara en: `127.0.0.1:5000`
 
-**NOTA:** Si se utiliza vsCode se debe seleccionar como interprete el entorno creado.
+**NOTA:** Se debe tener previamente configurado el archivo .env en la raiz del proyecto.
