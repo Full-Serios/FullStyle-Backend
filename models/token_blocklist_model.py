@@ -1,8 +1,9 @@
 import redis
 from datetime import timedelta
+import os
 
 # Configuración de Redis
-redis_client = redis.StrictRedis(host="localhost", port=5000, db=0, decode_responses=True)
+redis_client = redis.StrictRedis(host=os.environ["HOST"], port=os.environ["PORT"], db=0, decode_responses=True)
 
 class TokenBlockListModel:
     @staticmethod
