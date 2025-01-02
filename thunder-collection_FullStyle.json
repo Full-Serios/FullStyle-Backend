@@ -1,0 +1,228 @@
+{
+    "clientName": "Thunder Client",
+    "collectionName": "FullStyle",
+    "collectionId": "e5769f6f-6367-4cfc-826e-04b2d478c09c",
+    "dateExported": "2025-01-02T03:38:31.291Z",
+    "version": "1.2",
+    "folders": [],
+    "requests": [
+        {
+            "_id": "d4ee3f20-5639-46f0-87d8-21079fc0b127",
+            "colId": "e5769f6f-6367-4cfc-826e-04b2d478c09c",
+            "containerId": "",
+            "name": "GET_Sites",
+            "url": "http://127.0.0.1:5000/api/site",
+            "method": "GET",
+            "sortNum": 10000,
+            "created": "2024-12-30T16:39:49.494Z",
+            "modified": "2024-12-30T16:39:49.494Z",
+            "headers": []
+        },
+        {
+            "_id": "644ce8e2-6632-439f-a097-87b8b5cdf4d9",
+            "colId": "e5769f6f-6367-4cfc-826e-04b2d478c09c",
+            "containerId": "",
+            "name": "POST_Sites",
+            "url": "http://127.0.0.1:5000/api/site",
+            "method": "POST",
+            "sortNum": 20000,
+            "created": "2024-12-30T16:40:53.897Z",
+            "modified": "2024-12-30T16:50:21.899Z",
+            "headers": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n  \"name\": \"Peluquería el Santys\",\n  \"address\": \"7a Paper Street\",\n  \"phone\": \"3213131687\",\n  \"manager_id\": 2\n}",
+                "form": []
+            }
+        },
+        {
+            "_id": "933dd7b4-eb54-4357-bc94-a2dbdf4e1b0e",
+            "colId": "e5769f6f-6367-4cfc-826e-04b2d478c09c",
+            "containerId": "",
+            "name": "GET_Categories",
+            "url": "http://127.0.0.1:5000/api/category",
+            "method": "GET",
+            "sortNum": 25000,
+            "created": "2024-12-31T03:48:12.362Z",
+            "modified": "2025-01-01T16:25:29.103Z",
+            "headers": []
+        },
+        {
+            "_id": "90250f65-8117-4754-b186-d39b36d72e4f",
+            "colId": "e5769f6f-6367-4cfc-826e-04b2d478c09c",
+            "containerId": "",
+            "name": "GET_Services",
+            "url": "http://127.0.0.1:5000/api/service",
+            "method": "GET",
+            "sortNum": 30000,
+            "created": "2024-12-31T03:46:43.288Z",
+            "modified": "2024-12-31T03:47:16.565Z",
+            "headers": []
+        },
+        {
+            "_id": "216ec92c-6135-4de9-9043-97fc6913083d",
+            "colId": "e5769f6f-6367-4cfc-826e-04b2d478c09c",
+            "containerId": "",
+            "name": "GET_ServicesByQuery",
+            "url": "http://127.0.0.1:5000/api/service/query?id=1",
+            "method": "GET",
+            "sortNum": 40000,
+            "created": "2025-01-01T18:22:59.647Z",
+            "modified": "2025-01-02T01:22:43.184Z",
+            "headers": [],
+            "params": [
+                {
+                    "name": "id",
+                    "value": "1",
+                    "isPath": false
+                },
+                {
+                    "name": "name",
+                    "value": "Quick Haircut",
+                    "isDisabled": true,
+                    "isPath": false
+                },
+                {
+                    "name": "category_id",
+                    "value": "1",
+                    "isDisabled": true,
+                    "isPath": false
+                }
+            ]
+        },
+        {
+            "_id": "907bf5ab-ac87-4b68-9553-564755868216",
+            "colId": "e5769f6f-6367-4cfc-826e-04b2d478c09c",
+            "containerId": "",
+            "name": "POST_Services",
+            "url": "http://127.0.0.1:5000/api/service",
+            "method": "POST",
+            "sortNum": 50000,
+            "created": "2024-12-31T03:49:18.373Z",
+            "modified": "2024-12-31T03:59:22.164Z",
+            "headers": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n  \"name\": \"Corte corriente\",\n  \"description\": \"Es un corte clásico, similar al corte de militar\",\n  \"price\": 8000,\n  \"duration\": 15\n}",
+                "form": []
+            }
+        },
+        {
+            "_id": "512682db-793b-44ce-8a29-b1833a5fb522",
+            "colId": "e5769f6f-6367-4cfc-826e-04b2d478c09c",
+            "containerId": "",
+            "name": "GET_Workers",
+            "url": "http://127.0.0.1:5000/api/worker",
+            "method": "GET",
+            "sortNum": 60000,
+            "created": "2024-12-31T04:24:54.221Z",
+            "modified": "2024-12-31T04:25:13.432Z",
+            "headers": []
+        },
+        {
+            "_id": "d95adeef-66f9-4bd4-8fc1-a89b75484249",
+            "colId": "e5769f6f-6367-4cfc-826e-04b2d478c09c",
+            "containerId": "",
+            "name": "POST_Workers",
+            "url": "http://127.0.0.1:5000/api/worker",
+            "method": "POST",
+            "sortNum": 70000,
+            "created": "2024-12-31T04:25:54.623Z",
+            "modified": "2024-12-31T04:59:50.140Z",
+            "headers": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n  \"name\": \"Steven Flores\",\n  \"availability\": {\n    \"Monday\": [\n      \"10:00-12:00\",\n      \"13:00-18:00\"\n    ],\n    \"Tuesday\": [\n      \"10:00-18:00\"\n    ],\n    \"Wednesday\": [\n      \"10:00-18:00\"\n    ],\n    \"Thursday\": [\n      \"10:00-18:00\"\n    ],\n    \"Friday\": [\n      \"10:00-18:00\"\n    ]\n  },\n  \"busy\": false,\n  \"site_id\": 3,\n  \"site_manager_id\": 2\n}",
+                "form": []
+            }
+        },
+        {
+            "_id": "9f362ebd-6d6f-41d6-a7dd-187defc4eff4",
+            "colId": "e5769f6f-6367-4cfc-826e-04b2d478c09c",
+            "containerId": "",
+            "name": "GET_Site_have_Categories",
+            "url": "http://127.0.0.1:5000/api/site_has_category",
+            "method": "GET",
+            "sortNum": 72500,
+            "created": "2025-01-01T18:18:02.885Z",
+            "modified": "2025-01-01T18:18:02.885Z",
+            "headers": []
+        },
+        {
+            "_id": "7e3048d4-a6cd-4f28-9341-e82e12062fc9",
+            "colId": "e5769f6f-6367-4cfc-826e-04b2d478c09c",
+            "containerId": "",
+            "name": "POST_Site_have_Categories",
+            "url": "http://127.0.0.1:5000/api/site_has_category",
+            "method": "POST",
+            "sortNum": 73750,
+            "created": "2025-01-01T18:16:59.076Z",
+            "modified": "2025-01-01T18:19:26.639Z",
+            "headers": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n  \"site_id\": 1,\n  \"category_id\": 3\n}",
+                "form": []
+            }
+        },
+        {
+            "_id": "f6d8c14c-39b0-41e6-8d2c-b1e528f3a42e",
+            "colId": "e5769f6f-6367-4cfc-826e-04b2d478c09c",
+            "containerId": "",
+            "name": "GET_Sites_have_Services",
+            "url": "http://127.0.0.1:5000/api/site_has_service",
+            "method": "GET",
+            "sortNum": 75000,
+            "created": "2024-12-31T05:15:48.736Z",
+            "modified": "2024-12-31T05:17:00.222Z",
+            "headers": []
+        },
+        {
+            "_id": "874d0520-c2ac-4592-9b5f-f65d459770e9",
+            "colId": "e5769f6f-6367-4cfc-826e-04b2d478c09c",
+            "containerId": "",
+            "name": "POST_Sites_have_Services",
+            "url": "http://127.0.0.1:5000/api/site_has_service",
+            "method": "POST",
+            "sortNum": 76250,
+            "created": "2024-12-31T05:31:49.067Z",
+            "modified": "2024-12-31T05:36:02.959Z",
+            "headers": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n  \"site_id\": 3,\n  \"site_manager_id\": 2,\n  \"service_id\": 3\n}",
+                "form": []
+            }
+        },
+        {
+            "_id": "1f93b35c-fd51-4614-b81e-67c9fd419c3c",
+            "colId": "e5769f6f-6367-4cfc-826e-04b2d478c09c",
+            "containerId": "",
+            "name": "GET_Workers_have_Services",
+            "url": "http://127.0.0.1:5000/api/worker_has_service",
+            "method": "GET",
+            "sortNum": 80000,
+            "created": "2024-12-31T05:04:57.364Z",
+            "modified": "2024-12-31T05:06:03.303Z",
+            "headers": []
+        },
+        {
+            "_id": "88c258b3-e677-480f-97ee-2c3a4df7a6ee",
+            "colId": "e5769f6f-6367-4cfc-826e-04b2d478c09c",
+            "containerId": "",
+            "name": "POST_Workers_have_Services",
+            "url": "http://127.0.0.1:5000/api/worker_has_service",
+            "method": "POST",
+            "sortNum": 90000,
+            "created": "2024-12-31T05:06:11.030Z",
+            "modified": "2024-12-31T05:37:25.551Z",
+            "headers": [],
+            "body": {
+                "type": "json",
+                "raw": "{\n  \"worker_id\": 3,\n  \"service_id\": 4\n}",
+                "form": []
+            }
+        }
+    ],
+    "ref": "VOHyY3Hd4lovyvurkHsFLK8d93yVAA1axTs6FN76f2j2arblBVUBNPm0EYLXtbLMROy7QT7h-oV8NcBWqpZA-A"
+}

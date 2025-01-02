@@ -27,6 +27,10 @@ class SiteModel(db.Model):
             'manager_id': self.manager_id
         }
     
+    def save_to_db(self):
+        db.session.add(self)
+        db.session.commit()
+    
     @classmethod
     def get_all_sites(cls):
         sites = cls.query.all()
