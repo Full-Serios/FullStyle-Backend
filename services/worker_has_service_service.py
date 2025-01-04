@@ -1,5 +1,5 @@
 from models.worker_has_service_model import WorkerHasServiceModel
-from models.site_has_service_model import SiteHasServiceModel
+from models.detail_model import DetailModel
 from models.worker_model import WorkerModel
 from flask_restful import Resource, reqparse
 
@@ -21,13 +21,13 @@ class WorkerHasService(Resource):
     def post(self):
         data = WorkerHasService.parser.parse_args()
 
-        # Get the worker's site_id and site_manager_id
+        # Get the worker's site_id
         worker = WorkerModel.query.filter_by(id=data['worker_id']).first()
         if not worker:
             return {"message": "Worker not found"}, 404
 
         # Check if the service_id is allowed for the worker's site
-        site_service = SiteHasServiceModel.query.filter_by(site_id=worker.site_id, site_manager_id=worker.site_manager_id, service_id=data['service_id']).first()
+        site_service = DetailModel.query.filter_by(site_id=worker.site_id, service_id=data['service_id']).first()
         if not site_service:
             return {"message": "Service not allowed for this worker's site"}, 400
 

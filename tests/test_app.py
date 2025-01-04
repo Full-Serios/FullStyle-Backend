@@ -8,7 +8,6 @@ from models.service_model import ServiceModel
 from models.site_model import SiteModel
 from models.worker_model import WorkerModel
 from models.worker_has_service_model import WorkerHasServiceModel
-from models.site_has_service_model import SiteHasServiceModel
 from models.category_model import CategoryModel
 from models.site_has_category_model import SiteHasCategoryModel
 
@@ -87,27 +86,12 @@ def test_create_worker(client):
         "availability": {},
         "busy": False,
         "site_id": 0,
-        "site_manager_id": 1
     })
     assert response.status_code == 201
     assert response.json['name'] == "John Doe"
 
 def test_get_all_workers(client):
     response = client.get("/api/worker")
-    assert response.status_code == 200
-    assert len(response.json) > 0
-
-def test_create_site_has_service(client):
-    response = client.post("/api/site_has_service", json={
-        "site_id": 0,
-        "site_manager_id": 1,
-        "service_id": 0
-    })
-    assert response.status_code == 201
-    assert response.json['site_id'] == 0
-
-def test_get_all_site_has_services(client):
-    response = client.get("/api/site_has_service")
     assert response.status_code == 200
     assert len(response.json) > 0
 
@@ -145,10 +129,6 @@ def clean_up():
         worker_service = WorkerHasServiceModel.query.filter_by(worker_id=0, service_id=0).first()
         if worker_service:
             db.session.delete(worker_service)
-        
-        site_service = SiteHasServiceModel.query.filter_by(site_id=0, site_manager_id=1, service_id=0).first()
-        if site_service:
-            db.session.delete(site_service)
         
         site_category = SiteHasCategoryModel.query.filter_by(site_id=0, category_id=1).first()
         if site_category:
