@@ -1,6 +1,7 @@
 from models.appointment_model import AppointmentModel
 from flask_restful import Resource, reqparse, request
 from datetime import datetime
+from utils.helpers import is_worker_available
 
 class Appointment(Resource):
     parser = reqparse.RequestParser()
@@ -16,6 +17,7 @@ class Appointment(Resource):
     def get(self):
         parser = reqparse.RequestParser()
         parser.add_argument('id', type=int, location='args', required=False)
+        parser.add_argument('status', type=str, location='args', required=False)
         parser.add_argument('worker_id', type=int, location='args', required=False)
         parser.add_argument('site_id', type=int, location='args', required=False)
         parser.add_argument('service_id', type=int, location='args', required=False)
@@ -26,6 +28,9 @@ class Appointment(Resource):
 
         if args['id']:
             query = query.filter_by(id=args['id'])
+
+        if args['status']:
+            query = query.filter_by(status=args['status'])
 
         if args['worker_id']:
             query = query.filter_by(worker_id=args['worker_id'])
@@ -53,6 +58,11 @@ class Appointment(Resource):
             appointmenttime = datetime.strptime(data['appointmenttime'], '%Y-%m-%dT%H:%M:%S')
         except ValueError:
             return {"message": "Invalid date format. Use 'YYYY-MM-DDTHH:MM:SS'."}, 400
+
+        # Check worker availability
+        available, message = is_worker_available(data['worker_id'], appointmenttime.date(), appointmenttime.time(), data['service_id'])
+        if not available:
+            return {"message": message}, 400
 
         appointment = AppointmentModel(
             appointmenttime=appointmenttime,
@@ -84,6 +94,11 @@ class Appointment(Resource):
                 appointmenttime = datetime.strptime(data['appointmenttime'], '%Y-%m-%dT%H:%M:%S')
             except ValueError:
                 return {"message": "Invalid date format. Use 'YYYY-MM-DDTHH:MM:SS'."}, 400
+
+            # Check worker availability
+            available, message = is_worker_available(data['worker_id'], appointmenttime.date(), appointmenttime.time(), data['service_id'], current_appointment_id=appointment_id)
+            if not available:
+                return {"message": message}, 400
 
             appointment.appointmenttime = appointmenttime
             appointment.status = data['status']

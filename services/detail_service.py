@@ -7,7 +7,7 @@ class Detail(Resource):
     parser.add_argument('site_id', type=int, required=True, help="This field cannot be left blank!")
     parser.add_argument('service_id', type=int, required=True, help="This field cannot be left blank!")
     parser.add_argument('description', type=str, required=False)
-    parser.add_argument('price', type=float, required=True, help="This field cannot be left blank!")
+    parser.add_argument('price', type=int, required=True, help="This field cannot be left blank!")
     parser.add_argument('duration', type=int, required=True, help="This field cannot be left blank!")
 
     # @jwt_required()
@@ -15,19 +15,27 @@ class Detail(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument('site_id', type=int, location='args', required=False)
         parser.add_argument('service_id', type=int, location='args', required=False)
-        parser.add_argument('price', type=float, location='args', required=False)
+        parser.add_argument('price', type=int, location='args', required=False)
+        parser.add_argument('name', type=str, location='args', required=False)
+        parser.add_argument('category_id', type=int, location='args', required=False)
         args = parser.parse_args()
 
-        query = DetailModel.query.filter_by(active=True)
+        query = DetailModel.query.join(ServiceModel, DetailModel.service_id == ServiceModel.id).filter(DetailModel.active == True)
 
         if args['price']:
             query = query.filter(DetailModel.price <= args['price'])
 
         if args['site_id']:
-            query = query.filter_by(site_id=args['site_id'])
+            query = query.filter(DetailModel.site_id == args['site_id'])
 
         if args['service_id']:
-            query = query.filter_by(service_id=args['service_id'])
+            query = query.filter(DetailModel.service_id == args['service_id'])
+
+        if args['name']:
+            query = query.filter(ServiceModel.name.ilike(f"%{args['name']}%"))
+
+        if args['category_id']:
+            query = query.filter(ServiceModel.category_id == args['category_id'])
 
         details = query.all()
 
@@ -39,13 +47,29 @@ class Detail(Resource):
     # @jwt_required()
     def post(self):
         data = Detail.parser.parse_args()
-        detail = DetailModel(data['site_id'], data['service_id'], data['description'], data['price'], data['duration'])
-        try:
-            detail.save_to_db()
-        except Exception as e:
-            return {"message": f"An error occurred inserting the detail: {str(e)}"}, 500
+        detail = DetailModel.query.filter_by(site_id=data['site_id'], service_id=data['service_id']).first()
 
-        return detail.json(), 201
+        if detail:
+            if not detail.active:
+                detail.active = True
+                detail.description = data['description']
+                detail.price = data['price']
+                detail.duration = data['duration']
+                try:
+                    detail.save_to_db()
+                except Exception as e:
+                    return {"message": f"An error occurred updating the detail: {str(e)}"}, 500
+                return detail.json(), 200
+            else:
+                return {"message": "Detail already exists and is active"}, 400
+        else:
+            detail = DetailModel(data['site_id'], data['service_id'], data['description'], data['price'], data['duration'])
+            try:
+                detail.save_to_db()
+            except Exception as e:
+                return {"message": f"An error occurred inserting the detail: {str(e)}"}, 500
+
+            return detail.json(), 201
 
     # @jwt_required()
     def put(self):
