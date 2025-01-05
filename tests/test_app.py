@@ -43,18 +43,18 @@ def test_create_service(client):
     assert response.json['name'] == "Corte sencillo"
 
 def test_get_service_by_id(client):
-    response = client.get("/api/service/query", query_string={"id": 1})
+    response = client.get("/api/service", query_string={"id": 1})
     print(response.json)
     assert response.status_code == 200
     assert response.json['id'] == 1
 
 def test_get_service_by_name(client):
-    response = client.get("/api/service/query", query_string={"name": "Corte sencillo"})
+    response = client.get("/api/service", query_string={"name": "Corte sencillo"})
     assert response.status_code == 200
     assert response.json['name'] == "Corte sencillo"
 
 def test_get_service_by_category(client):
-    response = client.get("/api/service/query", query_string={"category_id": 1})
+    response = client.get("/api/service", query_string={"category_id": 1})
     assert response.status_code == 200
     assert response.json[0]['category_id'] == 1
 
@@ -83,8 +83,6 @@ def test_create_worker(client):
     response = client.post("/api/worker", json={
         "id": 0,
         "name": "John Doe",
-        "availability": {},
-        "busy": False,
         "site_id": 0,
     })
     assert response.status_code == 201

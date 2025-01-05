@@ -8,6 +8,7 @@ class Site(Resource):
     parser.add_argument('id', type=int, required=False)
     parser.add_argument('name', type=str, required=False)
     parser.add_argument('address', type=str, required=False)
+    parser.add_argument('phone', type=int, required=False)
     parser.add_argument('manager_id', type=int, required=False)
     parser.add_argument('category_id', type=int, required=False)
     parser.add_argument('service_id', type=int, required=False)

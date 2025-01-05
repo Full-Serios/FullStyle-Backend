@@ -6,7 +6,7 @@ class DetailModel(db.Model):
     site_id = db.Column("site_id", db.Integer, db.ForeignKey('site.id'), primary_key=True)
     service_id = db.Column("service_id", db.Integer, db.ForeignKey('service.id'), primary_key=True)
     description = db.Column("description", db.Text, nullable=True)
-    price = db.Column("price", db.Numeric(10, 2), nullable=False)
+    price = db.Column("price", db.Integer, nullable=False)
     duration = db.Column("duration", db.Integer, nullable=False)
     active = db.Column("active", db.Boolean, default=True, nullable=False)
 
@@ -23,7 +23,7 @@ class DetailModel(db.Model):
             'site_id': self.site_id,
             'service_id': self.service_id,
             'description': self.description,
-            'price': str(self.price),
+            'price': self.price,
             'duration': self.duration,
             'active': self.active
         }
