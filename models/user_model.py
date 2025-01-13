@@ -6,6 +6,7 @@ from os import urandom
 from base64 import b32encode
 from onetimepass import valid_totp
 import utils.encryption as encryption
+from sqlalchemy.orm import relationship
 
 
 class UserModel(db.Model):
@@ -18,6 +19,8 @@ class UserModel(db.Model):
     password = db.Column("password", db.String(255), nullable=True)
     active = db.Column("active", db.Boolean, nullable=False, default=True)
     # otp_secret = db.Column("otp_secret", db.String(16), nullable=False)
+
+    manager = relationship("ManagerModel", back_populates="user", uselist=False)
 
     # Methods
     def __init__(self, email, name, password):
