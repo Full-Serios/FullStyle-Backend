@@ -1,4 +1,5 @@
 from models.user_model import UserModel
+from models.manager_model import ManagerModel
 from datetime import datetime, timezone
 from flask_restful import Resource, reqparse
 import utils.encryption as encryption
@@ -12,6 +13,7 @@ from flask_jwt_extended import (
     create_refresh_token,
     get_jwt,
 )
+from flask import make_response
 
 class User(Resource):
     parser = reqparse.RequestParser()
@@ -76,6 +78,101 @@ class User(Resource):
         except:
             return {"message": "An error occurred deleting the user."}, 500
 
+class RegisterGoogle(Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument(
+        "name", type=str, required=True, help="This field cannot be blank."
+    )
+    parser.add_argument(
+        "email", type=str, required=True, help="This field cannot be blank."
+    )
+
+    def post(self):
+        data = RegisterGoogle.parser.parse_args()
+
+        if not data:
+            return {"error": "No data provided"}, 400
+
+        email = data["email"]
+
+        # Verifica si el usuario ya existe
+        existing_user = UserModel.query.filter_by(email=email).first()
+        if existing_user:
+            return {"message": "El usuario ya existe"}, 400
+
+        # Crear nuevo usuario
+        try:
+            new_user = UserModel(
+                email=data["email"],
+                name=data["name"],
+                password=None
+            )
+            new_user.save_to_db()
+
+            access_token = create_access_token(identity=new_user.json())
+            refresh_token = create_refresh_token(identity=new_user.json())
+
+            # Crear la respuesta y establecer las cookies
+            response = make_response({
+                "message": "User registered successfully.",
+                "user": new_user.json(),
+            })
+            response.set_cookie(
+                "access_token", access_token, httponly=True, secure=True, samesite="Strict"
+            )
+            response.set_cookie(
+                "refresh_token", refresh_token, httponly=True, secure=True, samesite="Strict"
+            )
+            return response
+
+        except Exception as e:
+            print(f"Error al guardar usuario: {e}")
+            return {"error": "Database error"}, 500
+        
+class LoginGoogle(Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument(
+        "email", type=str, required=True, help="This field cannot be blank."
+    )
+
+    def post(self):
+        data = LoginGoogle.parser.parse_args()
+
+        if not data:
+            return {"error": "No data provided"}, 400
+
+        email = data["email"]
+
+        # Verifica si el usuario ya existe
+        existing_user = UserModel.query.filter_by(
+            email=email, active=True
+        ).one_or_none()
+        if not existing_user:
+            return {"message": "El usuario no existe, debe registrarse primero"}, 400
+            
+        try:
+
+            access_token = create_access_token(identity=existing_user.json())
+            refresh_token = create_refresh_token(identity=existing_user.json())
+
+            # Crear la respuesta y establecer las cookies
+            response = make_response({
+                "message": "User login successfully.",
+                "user": existing_user.json(),
+            })
+            response.set_cookie(
+                "access_token", access_token, httponly=True, secure=True, samesite="Strict"
+            )
+            response.set_cookie(
+                "refresh_token", refresh_token, httponly=True, secure=True, samesite="Strict"
+            )
+            return response
+
+        except Exception as e:
+            # Logea la excepción para depurar
+            print(f"Error al guardar usuario: {e}")
+            return {"error": "Database error"}, 500
+
 
 class UserRegister(Resource):
     parser = reqparse.RequestParser()
@@ -131,6 +228,95 @@ class UserRegister(Resource):
             }, 200
         except:
             return {"message": "An error occurred creating the user."}, 500
+
+
+class ManagerRegister(Resource):
+    parser = reqparse.RequestParser()
+    # User fields
+    parser.add_argument(
+        "name", type=str, required=True, help="This field cannot be blank."
+    )
+    parser.add_argument(
+        "email", type=str, required=True, help="This field cannot be blank."
+    )
+    parser.add_argument(
+        "password", type=str, required=True, help="This field cannot be blank."
+    )
+    # Manager specific fields
+    parser.add_argument(
+        "bankaccount", type=int, required=True, help="Bank account number is required."
+    )
+    parser.add_argument(
+        "accounttype", type=str, required=True, help="Account type is required."
+    )
+    parser.add_argument(
+        "bankentity", type=str, required=True, help="Bank entity is required."
+    )
+
+    def post(self):
+        data = ManagerRegister.parser.parse_args()
+
+        # Validate email
+        existing_user = UserModel.query.filter_by(
+            email=data["email"], active=True
+        ).one_or_none()
+        if (
+            existing_user is not None
+            and existing_user.id != id
+            and UserModel.is_valid_email(data["email"])
+        ):
+            return {"message": "A user with that email already exists"}, 400
+        
+        if not UserModel.is_valid_email(data["email"]):
+            return {"message": "Invalid email format"}, 400
+
+        # Check for inactive user
+        existing_user = UserModel.query.filter_by(
+            email=data["email"], active=False
+        ).one_or_none()
+        if existing_user is not None:
+            user = UserModel.query.filter_by(
+                email=data["email"], active=False
+            ).one_or_none()
+            user.recover_user()
+            return user.json(), 201
+
+        # Validate password
+        if data["password"] == "" or len(data["password"]) < 8:
+            return {"message": "Password must be at least 8 characters"}, 400
+
+        try:
+            # Create user first
+            user_data = {
+                "name": data["name"],
+                "email": data["email"],
+                "password": generate_password_hash(data["password"], method="pbkdf2")
+            }
+            user = UserModel(**user_data)
+            user.save_to_db()
+
+            # Create manager with reference to user
+            manager_data = {
+                "bankaccount": data["bankaccount"],
+                "accounttype": data["accounttype"],
+                "bankentity": data["bankentity"],
+                "userModel": user
+            }
+            manager = ManagerModel(**manager_data)
+            manager.save_to_db()
+
+            # Generate tokens
+            access_token = create_access_token(identity=user.json())
+            refresh_token = create_refresh_token(identity=user.json())
+
+            return {
+                "user": user.json(),
+                "manager": manager.json(),
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+            }, 200
+        except Exception as e:
+            return {"message": f"An error occurred creating the manager: {str(e)}"}, 500
 
 
 class UserLogin(Resource):
