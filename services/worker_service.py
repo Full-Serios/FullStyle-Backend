@@ -6,6 +6,11 @@ from models.seasonal_schedule_model import SeasonalScheduleModel
 from models.detail_model import DetailModel
 from models.appointment_model import AppointmentModel
 from flask_restful import Resource, reqparse, request
+from utils.helpers import (
+    check_worker_exists,
+    check_worker_active,
+    check_site_exists
+)
 from datetime import datetime, timedelta
 
 class Worker(Resource):
@@ -66,6 +71,12 @@ class Worker(Resource):
             else:
                 return {"message": "Worker already exists and is active"}, 400
         else:
+            # Check if site exists
+            if data['site_id']:
+                site, error = check_site_exists(data['site_id'])
+                if error:
+                    return {"message": error}, 400
+
             worker = WorkerModel(
                 name=data['name'],
                 site_id=data['site_id'],
@@ -87,15 +98,20 @@ class Worker(Resource):
         if not worker_id:
             return {"message": "Worker ID is required"}, 400
 
-        worker = WorkerModel.query.filter_by(id=worker_id).first()
+        worker, error = check_worker_exists(worker_id)
+        if error:
+            return {"message": error}, 404
 
-        if worker:
-            worker.name = data['name']
-            worker.site_id = data['site_id']
-            worker.profilepicture = data['profilepicture']
-            worker.description = data['description']
-        else:
-            return {"message": "Worker not found"}, 404
+        # Check if site exists
+        if data['site_id']:
+            site, error = check_site_exists(data['site_id'])
+            if error:
+                return {"message": error}, 400
+
+        worker.name = data['name']
+        worker.site_id = data['site_id']
+        worker.profilepicture = data['profilepicture']
+        worker.description = data['description']
 
         try:
             worker.save_to_db()
@@ -111,15 +127,15 @@ class Worker(Resource):
         if not worker_id:
             return {"message": "Worker ID is required as a query parameter"}, 400
 
-        worker = WorkerModel.query.filter_by(id=worker_id).first()
+        worker, error = check_worker_exists(worker_id)
+        if error:
+            return {"message": error}, 404
 
-        if worker:
-            try:
-                worker.deactivate()
-            except Exception as e:
-                return {"message": f"An error occurred deactivating the worker: {str(e)}"}, 500
-            return {"message": "Worker deactivated"}, 200
-        return {"message": "Worker not found"}, 404
+        try:
+            worker.deactivate()
+        except Exception as e:
+            return {"message": f"An error occurred deactivating the worker: {str(e)}"}, 500
+        return {"message": "Worker deactivated"}, 200
     
 class WorkerWeeklySchedule(Resource):
     parser = reqparse.RequestParser()

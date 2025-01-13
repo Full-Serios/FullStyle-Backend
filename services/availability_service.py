@@ -1,5 +1,11 @@
 from models.availability_model import AvailabilityModel
 from flask_restful import Resource, reqparse, request
+from utils.helpers import (
+    check_worker_exists,
+    check_worker_active,
+    check_availability_exists,
+    check_overlapping_availability
+)
 
 class Availability(Resource):
     parser = reqparse.RequestParser()
@@ -38,6 +44,19 @@ class Availability(Resource):
     # @jwt_required()
     def post(self):
         data = Availability.parser.parse_args()
+
+        worker, error = check_worker_exists(data['worker_id'])
+        if error:
+            return {"message": error}, 400
+
+        worker, error = check_worker_active(data['worker_id'])
+        if error:
+            return {"message": error}, 400
+
+        available, error = check_overlapping_availability(data['worker_id'], data['weekday'], data['starttime'], data['endtime'])
+        if not available:
+            return {"message": error}, 400
+
         availability = AvailabilityModel(data['worker_id'], data['weekday'], data['starttime'], data['endtime'])
         try:
             availability.save_to_db()
@@ -54,14 +73,25 @@ class Availability(Resource):
         if not availability_id:
             return {"message": "Availability ID is required"}, 400
 
-        availability = AvailabilityModel.query.filter_by(id=availability_id).first()
+        availability, error = check_availability_exists(availability_id)
+        if error:
+            return {"message": error}, 404
 
-        if availability:
-            availability.weekday = data['weekday']
-            availability.starttime = data['starttime']
-            availability.endtime = data['endtime']
-        else:
-            return {"message": "Availability not found"}, 404
+        worker, error = check_worker_exists(data['worker_id'])
+        if error:
+            return {"message": error}, 400
+
+        worker, error = check_worker_active(data['worker_id'])
+        if error:
+            return {"message": error}, 400
+
+        available, error = check_overlapping_availability(data['worker_id'], data['weekday'], data['starttime'], data['endtime'], current_availability_id=availability_id)
+        if not available:
+            return {"message": error}, 400
+
+        availability.weekday = data['weekday']
+        availability.starttime = data['starttime']
+        availability.endtime = data['endtime']
 
         try:
             availability.save_to_db()
@@ -77,12 +107,12 @@ class Availability(Resource):
         if not availability_id:
             return {"message": "Availability ID is required as a query parameter"}, 400
 
-        availability = AvailabilityModel.query.filter_by(id=availability_id).first()
+        availability, error = check_availability_exists(availability_id)
+        if error:
+            return {"message": error}, 404
 
-        if availability:
-            try:
-                availability.delete_from_db()
-            except Exception as e:
-                return {"message": f"An error occurred deleting the availability: {str(e)}"}, 500
-            return {"message": "Availability deleted"}, 200
-        return {"message": "Availability not found"}, 404
+        try:
+            availability.delete_from_db()
+        except Exception as e:
+            return {"message": f"An error occurred deleting the availability: {str(e)}"}, 500
+        return {"message": "Availability deleted"}, 200

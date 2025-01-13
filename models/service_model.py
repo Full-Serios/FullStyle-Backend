@@ -7,6 +7,10 @@ class ServiceModel(db.Model):
     category_id = db.Column("category_id", db.Integer, db.ForeignKey('category.id'), nullable=False)
     name = db.Column("name", db.String(100), nullable=False)
 
+    details = db.relationship('DetailModel', back_populates='service', cascade="all, delete-orphan")
+    category = db.relationship('CategoryModel', back_populates='services')
+    worker_services = db.relationship('WorkerHasServiceModel', back_populates='service', cascade="all, delete-orphan")
+
     def __init__(self, category_id, name, active=True) -> None:
         self.category_id = category_id
         self.name = name

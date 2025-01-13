@@ -3,8 +3,11 @@ from config.server_config import db
 class SiteHasCategoryModel(db.Model):
     __tablename__ = 'site_has_category'
 
-    site_id = db.Column("site_id", db.Integer, db.ForeignKey('site.id'), primary_key=True)
-    category_id = db.Column("category_id", db.Integer, db.ForeignKey('category.id'), primary_key=True)
+    site_id = db.Column("site_id", db.Integer, db.ForeignKey('site.id', ondelete='CASCADE'), primary_key=True)
+    category_id = db.Column("category_id", db.Integer, db.ForeignKey('category.id', ondelete='CASCADE'), primary_key=True)
+
+    site = db.relationship('SiteModel', back_populates='site_categories')
+    category = db.relationship('CategoryModel', back_populates='site_categories')
 
     def __init__(self, site_id, category_id) -> None:
         self.site_id = site_id

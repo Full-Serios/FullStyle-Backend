@@ -4,10 +4,12 @@ class AvailabilityModel(db.Model):
     __tablename__ = 'availability'
 
     id = db.Column("id", db.Integer, primary_key=True)
-    worker_id = db.Column("worker_id", db.Integer, db.ForeignKey('worker.id'), nullable=False)
+    worker_id = db.Column("worker_id", db.Integer, db.ForeignKey('worker.id', ondelete='CASCADE'), nullable=False)
     weekday = db.Column("weekday", db.String(10), nullable=False)
     starttime = db.Column("starttime", db.Time, nullable=False)
     endtime = db.Column("endtime", db.Time, nullable=False)
+
+    worker = db.relationship('WorkerModel', back_populates='availabilities')
 
     def __init__(self, worker_id, weekday, starttime, endtime) -> None:
         self.worker_id = worker_id

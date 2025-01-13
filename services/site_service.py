@@ -2,6 +2,11 @@ from models.site_model import SiteModel
 from models.site_has_category_model import SiteHasCategoryModel
 from models.detail_model import DetailModel
 from flask_restful import Resource, reqparse, request
+from utils.helpers import (
+    check_site_exists,
+    check_manager_exists,
+    check_phone
+)
 
 class Site(Resource):
     parser = reqparse.RequestParser()
@@ -56,6 +61,18 @@ class Site(Resource):
     # @jwt_required()
     def post(self):
         data = Site.parser.parse_args()
+
+        # Validate phone number
+        valid, error = check_phone(data['phone'])
+        if not valid:
+            return {"message": error}, 400
+
+        # Check if manager exists
+        if data['manager_id']:
+            manager, error = check_manager_exists(data['manager_id'])
+            if error:
+                return {"message": error}, 400
+
         site = SiteModel(None, data['name'], data['address'], data['phone'], data['manager_id'])
         try:
             site.save_to_db()
@@ -72,15 +89,25 @@ class Site(Resource):
         if not site_id:
             return {"message": "Site ID is required as a query parameter"}, 400
 
-        site = SiteModel.query.filter_by(id=site_id).first()
+        site, error = check_site_exists(site_id)
+        if error:
+            return {"message": error}, 404
 
-        if site:
-            site.name = data['name']
-            site.address = data['address']
-            site.phone = data['phone']
-            site.manager_id = data['manager_id']
-        else:
-            return {"message": "Site not found"}, 404
+        # Validate phone number
+        valid, error = check_phone(data['phone'])
+        if not valid:
+            return {"message": error}, 400
+
+        # Check if manager exists
+        if data['manager_id']:
+            manager, error = check_manager_exists(data['manager_id'])
+            if error:
+                return {"message": error}, 400
+
+        site.name = data['name']
+        site.address = data['address']
+        site.phone = data['phone']
+        site.manager_id = data['manager_id']
 
         try:
             site.save_to_db()
@@ -96,12 +123,12 @@ class Site(Resource):
         if not site_id:
             return {"message": "Site ID is required as a query parameter"}, 400
 
-        site = SiteModel.query.filter_by(id=site_id).first()
+        site, error = check_site_exists(site_id)
+        if error:
+            return {"message": error}, 404
 
-        if site:
-            try:
-                site.delete_from_db()
-            except Exception as e:
-                return {"message": f"An error occurred deleting the site: {str(e)}"}, 500
-            return {"message": "Site deleted"}, 200
-        return {"message": "Site not found"}, 404
+        try:
+            site.delete_from_db()
+        except Exception as e:
+            return {"message": f"An error occurred deleting the site: {str(e)}"}, 500
+        return {"message": "Site deleted"}, 200

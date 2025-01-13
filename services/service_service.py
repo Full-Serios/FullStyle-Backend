@@ -1,6 +1,10 @@
 from models.service_model import ServiceModel
 from models.category_model import CategoryModel
 from flask_restful import Resource, reqparse, request
+from utils.helpers import (
+    check_category_exists,
+    check_service_unique
+)
 
 class Service(Resource):
     parser = reqparse.RequestParser()
@@ -37,9 +41,16 @@ class Service(Resource):
     # @jwt_required()
     def post(self):
         data = Service.parser.parse_args()
-        category = CategoryModel.query.filter_by(id=data['category_id']).first()
-        if not category:
-            return {"message": "Invalid category ID"}, 400
+
+        # Check if category exists
+        category, error = check_category_exists(data['category_id'])
+        if error:
+            return {"message": error}, 400
+
+        # Check if service is unique
+        unique, error = check_service_unique(data['name'], data['category_id'])
+        if not unique:
+            return {"message": error}, 400
 
         service = ServiceModel(data['category_id'], data['name'])
         try:
