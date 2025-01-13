@@ -15,7 +15,7 @@ class UserModel(db.Model):
     id = db.Column("id", db.Integer, primary_key=True)
     name = db.Column("name", db.String(100), nullable=False)
     email = db.Column("email", db.String(150), nullable=False, unique=True)
-    password = db.Column("password", db.String(255), nullable=False)
+    password = db.Column("password", db.String(255), nullable=True)
     active = db.Column("active", db.Boolean, nullable=False, default=True)
     # otp_secret = db.Column("otp_secret", db.String(16), nullable=False)
 

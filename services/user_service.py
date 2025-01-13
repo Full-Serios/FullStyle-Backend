@@ -12,6 +12,7 @@ from flask_jwt_extended import (
     create_refresh_token,
     get_jwt,
 )
+from flask import make_response
 
 class User(Resource):
     parser = reqparse.RequestParser()
@@ -75,6 +76,101 @@ class User(Resource):
             return {"message": "User deleted and token invalidated"}, 200
         except:
             return {"message": "An error occurred deleting the user."}, 500
+
+class RegisterGoogle(Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument(
+        "name", type=str, required=True, help="This field cannot be blank."
+    )
+    parser.add_argument(
+        "email", type=str, required=True, help="This field cannot be blank."
+    )
+
+    def post(self):
+        data = RegisterGoogle.parser.parse_args()
+
+        if not data:
+            return {"error": "No data provided"}, 400
+
+        email = data["email"]
+
+        # Verifica si el usuario ya existe
+        existing_user = UserModel.query.filter_by(email=email).first()
+        if existing_user:
+            return {"message": "El usuario ya existe"}, 400
+
+        # Crear nuevo usuario
+        try:
+            new_user = UserModel(
+                email=data["email"],
+                name=data["name"],
+                password=None
+            )
+            new_user.save_to_db()
+
+            access_token = create_access_token(identity=new_user.json())
+            refresh_token = create_refresh_token(identity=new_user.json())
+
+            # Crear la respuesta y establecer las cookies
+            response = make_response({
+                "message": "User registered successfully.",
+                "user": new_user.json(),
+            })
+            response.set_cookie(
+                "access_token", access_token, httponly=True, secure=True, samesite="Strict"
+            )
+            response.set_cookie(
+                "refresh_token", refresh_token, httponly=True, secure=True, samesite="Strict"
+            )
+            return response
+
+        except Exception as e:
+            print(f"Error al guardar usuario: {e}")
+            return {"error": "Database error"}, 500
+        
+class LoginGoogle(Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument(
+        "email", type=str, required=True, help="This field cannot be blank."
+    )
+
+    def post(self):
+        data = LoginGoogle.parser.parse_args()
+
+        if not data:
+            return {"error": "No data provided"}, 400
+
+        email = data["email"]
+
+        # Verifica si el usuario ya existe
+        existing_user = UserModel.query.filter_by(
+            email=email, active=True
+        ).one_or_none()
+        if not existing_user:
+            return {"message": "El usuario no existe, debe registrarse primero"}, 400
+            
+        try:
+
+            access_token = create_access_token(identity=existing_user.json())
+            refresh_token = create_refresh_token(identity=existing_user.json())
+
+            # Crear la respuesta y establecer las cookies
+            response = make_response({
+                "message": "User login successfully.",
+                "user": existing_user.json(),
+            })
+            response.set_cookie(
+                "access_token", access_token, httponly=True, secure=True, samesite="Strict"
+            )
+            response.set_cookie(
+                "refresh_token", refresh_token, httponly=True, secure=True, samesite="Strict"
+            )
+            return response
+
+        except Exception as e:
+            # Logea la excepción para depurar
+            print(f"Error al guardar usuario: {e}")
+            return {"error": "Database error"}, 500
 
 
 class UserRegister(Resource):
