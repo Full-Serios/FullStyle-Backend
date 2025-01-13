@@ -1,5 +1,12 @@
 from models.seasonal_schedule_model import SeasonalScheduleModel
 from flask_restful import Resource, reqparse, request
+from utils.helpers import (
+    check_date,
+    check_time,
+    check_worker_exists,
+    check_worker_active,
+    check_seasonal_schedule_exists
+)
 
 class SeasonalSchedule(Resource):
     parser = reqparse.RequestParser()
@@ -40,13 +47,41 @@ class SeasonalSchedule(Resource):
     # @jwt_required()
     def post(self):
         data = SeasonalSchedule.parser.parse_args()
+
+        # Parse dates and times
+        startdate, error = check_date(data['startdate'])
+        if error:
+            return {"message": error}, 400
+
+        enddate, error = check_date(data['enddate'])
+        if error:
+            return {"message": error}, 400
+
+        starttime, error = check_time(data['starttime'])
+        if error:
+            return {"message": error}, 400
+
+        endtime, error = check_time(data['endtime'])
+        if error:
+            return {"message": error}, 400
+
+        # Check if worker exists
+        worker, error = check_worker_exists(data['worker_id'])
+        if error:
+            return {"message": error}, 400
+
+        # Check if worker is active
+        worker, error = check_worker_active(data['worker_id'])
+        if error:
+            return {"message": error}, 400
+
         seasonal_schedule = SeasonalScheduleModel(
             worker_id=data['worker_id'],
             seasonname=data['seasonname'],
-            startdate=data['startdate'],
-            enddate=data['enddate'],
-            starttime=data['starttime'],
-            endtime=data['endtime']
+            startdate=startdate,
+            enddate=enddate,
+            starttime=starttime,
+            endtime=endtime
         )
         try:
             seasonal_schedule.save_to_db()
@@ -61,18 +96,44 @@ class SeasonalSchedule(Resource):
         seasonal_schedule_id = data['id']
 
         if not seasonal_schedule_id:
-            return {"message": "seasonal_schedule ID is required"}, 400
+            return {"message": "Seasonal schedule ID is required"}, 400
 
-        seasonal_schedule = SeasonalScheduleModel.query.filter_by(id=seasonal_schedule_id).first()
+        seasonal_schedule, error = check_seasonal_schedule_exists(seasonal_schedule_id)
+        if error:
+            return {"message": error}, 404
 
-        if seasonal_schedule:
-            seasonal_schedule.seasonname = data['seasonname']
-            seasonal_schedule.startdate = data['startdate']
-            seasonal_schedule.enddate = data['enddate']
-            seasonal_schedule.starttime = data['starttime']
-            seasonal_schedule.endtime = data['endtime']
-        else:
-            return {"message": "Seasonal schedule not found"}, 404
+        # Parse dates and times
+        startdate, error = check_date(data['startdate'])
+        if error:
+            return {"message": error}, 400
+
+        enddate, error = check_date(data['enddate'])
+        if error:
+            return {"message": error}, 400
+
+        starttime, error = check_time(data['starttime'])
+        if error:
+            return {"message": error}, 400
+
+        endtime, error = check_time(data['endtime'])
+        if error:
+            return {"message": error}, 400
+
+        # Check if worker exists
+        worker, error = check_worker_exists(data['worker_id'])
+        if error:
+            return {"message": error}, 400
+
+        # Check if worker is active
+        worker, error = check_worker_active(data['worker_id'])
+        if error:
+            return {"message": error}, 400
+
+        seasonal_schedule.seasonname = data['seasonname']
+        seasonal_schedule.startdate = startdate
+        seasonal_schedule.enddate = enddate
+        seasonal_schedule.starttime = starttime
+        seasonal_schedule.endtime = endtime
 
         try:
             seasonal_schedule.save_to_db()
@@ -88,12 +149,12 @@ class SeasonalSchedule(Resource):
         if not seasonal_schedule_id:
             return {"message": "Seasonal schedule ID is required as a query parameter"}, 400
 
-        seasonal_schedule = SeasonalScheduleModel.query.filter_by(id=seasonal_schedule_id).first()
+        seasonal_schedule, error = check_seasonal_schedule_exists(seasonal_schedule_id)
+        if error:
+            return {"message": error}, 404
 
-        if seasonal_schedule:
-            try:
-                seasonal_schedule.delete_from_db()
-            except Exception as e:
-                return {"message": f"An error occurred deleting the seasonal schedule: {str(e)}"}, 500
-            return {"message": "Seasonal schedule deleted"}, 200
-        return {"message": "Seasonal schedule not found"}, 404
+        try:
+            seasonal_schedule.delete_from_db()
+        except Exception as e:
+            return {"message": f"An error occurred deleting the seasonal schedule: {str(e)}"}, 500
+        return {"message": "Seasonal schedule deleted"}, 200

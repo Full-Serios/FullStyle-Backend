@@ -1,7 +1,10 @@
 from models.worker_has_service_model import WorkerHasServiceModel
-from models.detail_model import DetailModel
-from models.worker_model import WorkerModel
 from flask_restful import Resource, reqparse
+from utils.helpers import (
+    check_worker_exists,
+    check_service_allowed_for_site,
+    check_worker_service_exists
+)
 
 class WorkerHasService(Resource):
     parser = reqparse.RequestParser()
@@ -21,15 +24,20 @@ class WorkerHasService(Resource):
     def post(self):
         data = WorkerHasService.parser.parse_args()
 
-        # Get the worker's site_id
-        worker = WorkerModel.query.filter_by(id=data['worker_id']).first()
-        if not worker:
-            return {"message": "Worker not found"}, 404
+        # Check if worker exists
+        worker, error = check_worker_exists(data['worker_id'])
+        if error:
+            return {"message": error}, 404
 
-        # Check if the service_id is allowed for the worker's site
-        site_service = DetailModel.query.filter_by(site_id=worker.site_id, service_id=data['service_id']).first()
-        if not site_service:
-            return {"message": "Service not allowed for this worker's site"}, 400
+        # Check if the service is allowed for the worker's site
+        allowed, error = check_service_allowed_for_site(worker.site_id, data['service_id'])
+        if not allowed:
+            return {"message": error}, 400
+
+        # Check if worker-service relationship already exists
+        unique, error = check_worker_service_exists(data['worker_id'], data['service_id'])
+        if not unique:
+            return {"message": error}, 400
 
         worker_service = WorkerHasServiceModel(data['worker_id'], data['service_id'])
         try:

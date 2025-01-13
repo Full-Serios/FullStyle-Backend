@@ -1,7 +1,11 @@
 from models.appointment_model import AppointmentModel
 from flask_restful import Resource, reqparse, request
 from datetime import datetime
-from utils.helpers import is_worker_available
+from utils.helpers import (
+    check_appointment_time,
+    check_appointment_exists,
+    is_worker_available
+)
 
 class Appointment(Resource):
     parser = reqparse.RequestParser()
@@ -54,12 +58,10 @@ class Appointment(Resource):
     # @jwt_required()
     def post(self):
         data = Appointment.parser.parse_args()
-        try:
-            appointmenttime = datetime.strptime(data['appointmenttime'], '%Y-%m-%dT%H:%M:%S')
-        except ValueError:
-            return {"message": "Invalid date format. Use 'YYYY-MM-DDTHH:MM:SS'."}, 400
+        appointmenttime, error = check_appointment_time(data['appointmenttime'])
+        if error:
+            return {"message": error}, 400
 
-        # Check worker availability
         available, message = is_worker_available(data['worker_id'], appointmenttime.date(), appointmenttime.time(), data['service_id'])
         if not available:
             return {"message": message}, 400
@@ -89,25 +91,24 @@ class Appointment(Resource):
 
         appointment = AppointmentModel.find_by_id(appointment_id)
 
-        if appointment:
-            try:
-                appointmenttime = datetime.strptime(data['appointmenttime'], '%Y-%m-%dT%H:%M:%S')
-            except ValueError:
-                return {"message": "Invalid date format. Use 'YYYY-MM-DDTHH:MM:SS'."}, 400
+        appointment, error = check_appointment_exists(appointment_id)
+        if error:
+            return {"message": error}, 404
 
-            # Check worker availability
-            available, message = is_worker_available(data['worker_id'], appointmenttime.date(), appointmenttime.time(), data['service_id'], current_appointment_id=appointment_id)
-            if not available:
-                return {"message": message}, 400
+        appointmenttime, error = check_appointment_time(data['appointmenttime'])
+        if error:
+            return {"message": error}, 400
 
-            appointment.appointmenttime = appointmenttime
-            appointment.status = data['status']
-            appointment.worker_id = data['worker_id']
-            appointment.site_id = data['site_id']
-            appointment.service_id = data['service_id']
-            appointment.client_id = data['client_id']
-        else:
-            return {"message": "Appointment not found"}, 404
+        available, message = is_worker_available(data['worker_id'], appointmenttime.date(), appointmenttime.time(), data['service_id'], current_appointment_id=appointment_id)
+        if not available:
+            return {"message": message}, 400
+
+        appointment.appointmenttime = appointmenttime
+        appointment.status = data['status']
+        appointment.worker_id = data['worker_id']
+        appointment.site_id = data['site_id']
+        appointment.service_id = data['service_id']
+        appointment.client_id = data['client_id']
 
         try:
             appointment.save_to_db()
@@ -122,8 +123,10 @@ class Appointment(Resource):
 
         if not appointment_id:
             return {"message": "Appointment ID is required as a query parameter"}, 400
-
-        appointment = AppointmentModel.find_by_id(appointment_id)
+        
+        appointment, error = check_appointment_exists(appointment_id)
+        if error:
+            return {"message": error}, 404
 
         if appointment:
             try:

@@ -4,8 +4,11 @@ class WorkerHasServiceModel(db.Model):
     # To handle tables using ORM
     __tablename__ = 'worker_has_service'
 
-    worker_id = db.Column("worker_id", db.Integer, db.ForeignKey('worker.id'), primary_key=True)
-    service_id = db.Column("service_id", db.Integer, db.ForeignKey('service.id'), primary_key=True)
+    worker_id = db.Column("worker_id", db.Integer, db.ForeignKey('worker.id', ondelete='CASCADE'), primary_key=True)
+    service_id = db.Column("service_id", db.Integer, db.ForeignKey('service.id', ondelete='CASCADE'), primary_key=True)
+
+    worker = db.relationship('WorkerModel', back_populates='worker_services')
+    service = db.relationship('ServiceModel', back_populates='worker_services')
 
     # Constructor and associated functions with the class
     def __init__(self, worker_id, service_id) -> None:

@@ -8,7 +8,11 @@ class SiteModel(db.Model):
     name = db.Column("name", db.String(150), nullable=False)
     address = db.Column("address", db.String(255), nullable=False)
     phone = db.Column("phone", db.String(20), nullable=True)
-    manager_id = db.Column("manager_id", db.Integer, nullable=False)
+    manager_id = db.Column("manager_id", db.Integer, nullable=False) # db.ForeignKey('manager.id', ondelete='CASCADE'), 
+
+    details = db.relationship('DetailModel', back_populates='site', cascade="all, delete-orphan")
+    workers = db.relationship('WorkerModel', back_populates='site', cascade="all, delete-orphan")
+    site_categories = db.relationship('SiteHasCategoryModel', back_populates='site', cascade="all, delete-orphan")
 
     # Constructor and associated functions with the class
     def __init__(self, id, name, address, phone, manager_id) -> None:

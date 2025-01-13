@@ -6,6 +6,9 @@ class CategoryModel(db.Model):
     id = db.Column("id", db.Integer, primary_key=True)
     name = db.Column("name", db.String(100), nullable=False, unique=True)
 
+    services = db.relationship('ServiceModel', back_populates='category', cascade="all, delete-orphan")
+    site_categories = db.relationship('SiteHasCategoryModel', back_populates='category', cascade="all, delete-orphan")
+
     def __init__(self, name) -> None:
         self.name = name
 

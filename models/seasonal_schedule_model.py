@@ -4,12 +4,14 @@ class SeasonalScheduleModel(db.Model):
     __tablename__ = 'seasonal_schedule'
 
     id = db.Column("id", db.Integer, primary_key=True)
-    worker_id = db.Column("worker_id", db.Integer, db.ForeignKey('worker.id'), nullable=False)
+    worker_id = db.Column("worker_id", db.Integer, db.ForeignKey('worker.id', ondelete='CASCADE'), nullable=False)
     seasonname = db.Column("seasonname", db.String(50), nullable=False)
     startdate = db.Column("startdate", db.Date, nullable=False)
     enddate = db.Column("enddate", db.Date, nullable=False)
     starttime = db.Column("starttime", db.Time, nullable=False)
     endtime = db.Column("endtime", db.Time, nullable=False)
+
+    worker = db.relationship('WorkerModel', back_populates='seasonal_schedules')
 
     def __init__(self, worker_id, seasonname, startdate, enddate, starttime, endtime) -> None:
         self.worker_id = worker_id

@@ -1,5 +1,10 @@
 from models.site_has_category_model import SiteHasCategoryModel
 from flask_restful import Resource, reqparse
+from utils.helpers import (
+    check_site_exists,
+    check_category_exists,
+    check_site_category_exists
+)
 
 class SiteHasCategory(Resource):
     parser = reqparse.RequestParser()
@@ -18,6 +23,22 @@ class SiteHasCategory(Resource):
     # @jwt_required()
     def post(self):
         data = SiteHasCategory.parser.parse_args()
+
+        # Check if site exists
+        site, error = check_site_exists(data['site_id'])
+        if error:
+            return {"message": error}, 400
+
+        # Check if category exists
+        category, error = check_category_exists(data['category_id'])
+        if error:
+            return {"message": error}, 400
+
+        # Check if site-category relationship already exists
+        unique, error = check_site_category_exists(data['site_id'], data['category_id'])
+        if not unique:
+            return {"message": error}, 400
+
         site_category = SiteHasCategoryModel(data['site_id'], data['category_id'])
         try:
             site_category.save_to_db()

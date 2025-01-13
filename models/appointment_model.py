@@ -6,10 +6,12 @@ class AppointmentModel(db.Model):
     id = db.Column("id", db.Integer, primary_key=True)
     appointmenttime = db.Column("appointmenttime", db.DateTime, nullable=False)
     status = db.Column("status", db.String(50), default='pending', nullable=False)
-    worker_id = db.Column("worker_id", db.Integer, db.ForeignKey('worker.id'), nullable=False)
-    site_id = db.Column("site_id", db.Integer, nullable=False)
-    service_id = db.Column("service_id", db.Integer, nullable=False)
-    client_id = db.Column("client_id", db.Integer, nullable=False) # db.ForeignKey('client.id'), 
+    worker_id = db.Column("worker_id", db.Integer, db.ForeignKey('worker.id', ondelete='CASCADE'), nullable=False)
+    site_id = db.Column("site_id", db.Integer, db.ForeignKey('site.id', ondelete='CASCADE'), nullable=False)
+    service_id = db.Column("service_id", db.Integer, db.ForeignKey('service.id', ondelete='CASCADE'), nullable=False)
+    client_id = db.Column("client_id", db.Integer, nullable=False) # db.ForeignKey('client.id', ondelete='CASCADE'), 
+
+    worker = db.relationship('WorkerModel', back_populates='appointments')
 
     def __init__(self, appointmenttime, status, worker_id, site_id, service_id, client_id) -> None:
         self.appointmenttime = appointmenttime

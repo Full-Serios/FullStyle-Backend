@@ -3,12 +3,15 @@ from config.server_config import db
 class DetailModel(db.Model):
     __tablename__ = 'detail'
 
-    site_id = db.Column("site_id", db.Integer, db.ForeignKey('site.id'), primary_key=True)
-    service_id = db.Column("service_id", db.Integer, db.ForeignKey('service.id'), primary_key=True)
+    site_id = db.Column("site_id", db.Integer, db.ForeignKey('site.id', ondelete='CASCADE'), primary_key=True)
+    service_id = db.Column("service_id", db.Integer, db.ForeignKey('service.id', ondelete='CASCADE'), primary_key=True)
     description = db.Column("description", db.Text, nullable=True)
     price = db.Column("price", db.Integer, nullable=False)
     duration = db.Column("duration", db.Integer, nullable=False)
     active = db.Column("active", db.Boolean, default=True, nullable=False)
+
+    site = db.relationship('SiteModel', back_populates='details')
+    service = db.relationship('ServiceModel', back_populates='details')
 
     def __init__(self, site_id, service_id, description, price, duration, active=True) -> None:
         self.site_id = site_id
