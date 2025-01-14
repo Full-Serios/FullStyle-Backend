@@ -8,17 +8,19 @@ class DetailModel(db.Model):
     description = db.Column("description", db.Text, nullable=True)
     price = db.Column("price", db.Integer, nullable=False)
     duration = db.Column("duration", db.Integer, nullable=False)
+    photos = db.Column("photos", db.JSON, nullable=True)
     active = db.Column("active", db.Boolean, default=True, nullable=False)
 
     site = db.relationship('SiteModel', back_populates='details')
     service = db.relationship('ServiceModel', back_populates='details')
 
-    def __init__(self, site_id, service_id, description, price, duration, active=True) -> None:
+    def __init__(self, site_id, service_id, description, price, duration, photos, active=True) -> None:
         self.site_id = site_id
         self.service_id = service_id
         self.description = description
         self.price = price
         self.duration = duration
+        self.photos = photos
         self.active = active
 
     def json(self):
@@ -28,6 +30,7 @@ class DetailModel(db.Model):
             'description': self.description,
             'price': self.price,
             'duration': self.duration,
+            'photos': self.photos,
             'active': self.active
         }
 

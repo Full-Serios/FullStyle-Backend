@@ -9,18 +9,20 @@ class SiteModel(db.Model):
     address = db.Column("address", db.String(255), nullable=False)
     phone = db.Column("phone", db.String(20), nullable=True)
     manager_id = db.Column("manager_id", db.Integer, nullable=False) # db.ForeignKey('manager.id', ondelete='CASCADE'), 
+    photos = db.Column("photos", db.JSON, nullable=True)
 
     details = db.relationship('DetailModel', back_populates='site', cascade="all, delete-orphan")
     workers = db.relationship('WorkerModel', back_populates='site', cascade="all, delete-orphan")
     site_categories = db.relationship('SiteHasCategoryModel', back_populates='site', cascade="all, delete-orphan")
 
     # Constructor and associated functions with the class
-    def __init__(self, id, name, address, phone, manager_id) -> None:
+    def __init__(self, id, name, address, phone, manager_id, photos) -> None:
         self.id = id
         self.name = name
         self.address = address
         self.phone = phone
         self.manager_id = manager_id
+        self.photos = photos
 
     def json(self):
         return {
@@ -28,7 +30,8 @@ class SiteModel(db.Model):
             'name': self.name,
             'address': self.address,
             'phone': self.phone,
-            'manager_id': self.manager_id
+            'manager_id': self.manager_id,
+            'photos': self.photos
         }
     
     def save_to_db(self):
