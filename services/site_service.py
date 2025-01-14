@@ -17,6 +17,7 @@ class Site(Resource):
     parser.add_argument('manager_id', type=int, required=False)
     parser.add_argument('category_id', type=int, required=False)
     parser.add_argument('service_id', type=int, required=False)
+    parser.add_argument('photos', type=dict, required=False, help="This field must be a valid JSON object")
 
     # @jwt_required()
     def get(self):
@@ -73,7 +74,7 @@ class Site(Resource):
             if error:
                 return {"message": error}, 400
 
-        site = SiteModel(None, data['name'], data['address'], data['phone'], data['manager_id'])
+        site = SiteModel(None, data['name'], data['address'], data['phone'], data['manager_id'], data['photos'])
         try:
             site.save_to_db()
         except Exception as e:
@@ -108,6 +109,7 @@ class Site(Resource):
         site.address = data['address']
         site.phone = data['phone']
         site.manager_id = data['manager_id']
+        site.photos = data['photos']
 
         try:
             site.save_to_db()
