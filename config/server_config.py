@@ -44,10 +44,10 @@ def create_app():
         db.init_app(app)
         db.create_all()
 
-    @jwt.token_in_blocklist_loader
-    def check_if_token_is_revoked(jwt_header, jwt_payload):
-        jti = jwt_payload["jti"]
-        return TokenBlockListModel.is_token_blocked(jti)
+    # @jwt.token_in_blocklist_loader
+    # def check_if_token_is_revoked(jwt_header, jwt_payload):
+    #     jti = jwt_payload["jti"]
+    #     return TokenBlockListModel.is_token_blocked(jti)
 
     # Start the routes
     start_routes(api)

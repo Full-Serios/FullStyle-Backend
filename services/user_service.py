@@ -110,8 +110,8 @@ class RegisterGoogle(Resource):
             )
             new_user.save_to_db()
 
-            access_token = create_access_token(identity=new_user.json())
-            refresh_token = create_refresh_token(identity=new_user.json())
+            access_token = create_access_token(identity=str(new_user.id))
+            refresh_token = create_refresh_token(identity=str(new_user.id))
 
             # Crear la respuesta y establecer las cookies
             response = make_response({
@@ -129,7 +129,7 @@ class RegisterGoogle(Resource):
         except Exception as e:
             print(f"Error al guardar usuario: {e}")
             return {"error": "Database error"}, 500
-        
+
 class LoginGoogle(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument(
@@ -150,11 +150,11 @@ class LoginGoogle(Resource):
         ).one_or_none()
         if not existing_user:
             return {"message": "El usuario no existe, debe registrarse primero"}, 400
-            
+
         try:
 
-            access_token = create_access_token(identity=existing_user.json())
-            refresh_token = create_refresh_token(identity=existing_user.json())
+            access_token = create_access_token(identity=str(existing_user.id))
+            refresh_token = create_refresh_token(identity=str(existing_user.id))
 
             # Crear la respuesta y establecer las cookies
             response = make_response({
@@ -199,7 +199,7 @@ class UserRegister(Resource):
             and UserModel.is_valid_email(data["email"])
         ):
             return {"message": "A user with that email already exists"}, 400
-        
+
         if not UserModel.is_valid_email(data["email"]):
             return {"message": "Invalid email format"}, 400
 
@@ -212,7 +212,7 @@ class UserRegister(Resource):
             ).one_or_none()
             user.recover_user()
             return user.json(), 201
-        
+
         if data["password"] == "" or len(data["password"]) < 8:
             return {"message": "Password must be at least 8 characters"}, 400
 
@@ -220,8 +220,8 @@ class UserRegister(Resource):
         user.password = generate_password_hash(data["password"], method="pbkdf2")
         try:
             user.save_to_db()
-            access_token = create_access_token(identity=user.json())
-            refresh_token = create_refresh_token(identity=user.json())
+            access_token = create_access_token(identity=str(user.id))
+            refresh_token = create_refresh_token(identity=str(user.id))
             return {
                 "user": user.json(),
                 "access_token": access_token,
@@ -267,7 +267,7 @@ class ManagerRegister(Resource):
             and UserModel.is_valid_email(data["email"])
         ):
             return {"message": "A user with that email already exists"}, 400
-        
+
         if not UserModel.is_valid_email(data["email"]):
             return {"message": "Invalid email format"}, 400
 
@@ -315,8 +315,8 @@ class ManagerRegister(Resource):
             db.session.commit()
 
             # Generate tokens
-            access_token = create_access_token(identity=user.json())
-            refresh_token = create_refresh_token(identity=user.json())
+            access_token = create_access_token(identity=str(user.id))
+            refresh_token = create_refresh_token(identity=str(user.id))
 
             return {
                 "user": user.json(),
@@ -366,8 +366,8 @@ class UserLogin(Resource):
         if not user or not user.check_password(password): #or not user.verify_totp(token):
             return {"message": "Invalid credentials"}, 401
 
-        access_token = create_access_token(identity=user.json())
-        refresh_token = create_refresh_token(identity=user.json())
+        access_token = create_access_token(identity=str(user.id))
+        refresh_token = create_refresh_token(identity=str(user.id))
         return {
             "user": user.json(),
             "access_token": access_token,
@@ -402,8 +402,8 @@ class User2FA(Resource):
             return {"message": "User not found"}, 404
 
         return {"uri": user.get_totp_uri()}, 200
-    
-    
+
+
 class Test(Resource):
     def get(self):
         users = UserModel.get_all_users()
