@@ -9,6 +9,7 @@ class ManagerModel(db.Model):
     bankaccount = db.Column("bankaccount", db.BigInteger, nullable=False)
     accounttype = db.Column("accounttype", db.String(45), nullable=False)
     bankentity = db.Column("bankentity", db.String(45), nullable=False)
+    subscriptionactive = db.Column("subscriptionactive", db.Boolean, nullable=False, default=True)
     
     # Relationship
     user = relationship("UserModel", back_populates="manager")
@@ -24,7 +25,8 @@ class ManagerModel(db.Model):
             "id": self.id,  # Ahora id es el mismo que user_id
             "bankaccount": self.bankaccount,
             "accounttype": self.accounttype,
-            "bankentity": self.bankentity
+            "bankentity": self.bankentity,
+            "subscriptionactive": self.subscriptionactive
         }
          
     @classmethod

@@ -14,15 +14,16 @@ from flask_jwt_extended import (
     get_jwt,
 )
 from flask import make_response
+from config.db_config import db
 
 class User(Resource):
     parser = reqparse.RequestParser()
-    # parser.add_argument(
-    #     "name", type=str, required=True, help="This field cannot be blank."
-    # )
-    # parser.add_argument(
-    #     "email", type=str, required=True, help="This field cannot be blank."
-    # )
+    parser.add_argument(
+        "name", type=str, required=True, help="This field cannot be blank."
+    )
+    parser.add_argument(
+        "email", type=str, required=True, help="This field cannot be blank."
+    )
     parser.add_argument(
         "password", type=str, required=True, help="This field cannot be blank."
     )
@@ -286,24 +287,32 @@ class ManagerRegister(Resource):
             return {"message": "Password must be at least 8 characters"}, 400
 
         try:
-            # Create user first
-            user_data = {
-                "name": data["name"],
-                "email": data["email"],
-                "password": generate_password_hash(data["password"], method="pbkdf2")
-            }
-            user = UserModel(**user_data)
-            user.save_to_db()
+            # Crear savepoint
+            with db.session.begin_nested():
+                # Create user first
+                user_data = {
+                    "name": data["name"],
+                    "email": data["email"],
+                    "password": generate_password_hash(data["password"], method="pbkdf2")
+                }
+                user = UserModel(**user_data)
+                db.session.add(user)
+                
+                # Hacer flush para obtener el ID del usuario
+                db.session.flush()
 
-            # Create manager with reference to user
-            manager_data = {
-                "bankaccount": data["bankaccount"],
-                "accounttype": data["accounttype"],
-                "bankentity": data["bankentity"],
-                "userModel": user
-            }
-            manager = ManagerModel(**manager_data)
-            manager.save_to_db()
+                # Create manager with reference to user
+                manager_data = {
+                    "bankaccount": data["bankaccount"],
+                    "accounttype": data["accounttype"],
+                    "bankentity": data["bankentity"],
+                    "userModel": user
+                }
+                manager = ManagerModel(**manager_data)
+                db.session.add(manager)
+
+            # Commit de la sesión principal
+            db.session.commit()
 
             # Generate tokens
             access_token = create_access_token(identity=user.json())
@@ -316,7 +325,8 @@ class ManagerRegister(Resource):
                 "refresh_token": refresh_token,
             }, 200
         except Exception as e:
-            return {"message": f"An error occurred creating the manager: {str(e)}"}, 500
+            db.session.rollback()
+            return {"message": f"Ocurrio un error registrando el gerente: {str(e)}"}, 500
 
 
 class UserLogin(Resource):
