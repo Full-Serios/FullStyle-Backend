@@ -69,7 +69,14 @@ class UserModel(db.Model):
     @classmethod
     def find_by_id(cls, id):
         return cls.query.filter_by(id=id, active=True).first()
-
+    
+    @classmethod
+    def is_manager(cls, id):
+        user = cls.query.filter_by(id=id, active=True).first()
+        if user is None:
+            return False
+        return user.manager is not None
+    
     @staticmethod
     def is_valid_email(email):
         regex = re.compile(
