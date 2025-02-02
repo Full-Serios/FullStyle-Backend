@@ -15,6 +15,9 @@ from flask_jwt_extended import (
 )
 from flask import make_response
 from config.db_config import db
+from google.oauth2 import id_token
+from google.auth.transport import requests
+import os
 
 class User(Resource):
     parser = reqparse.RequestParser()
@@ -135,6 +138,9 @@ class LoginGoogle(Resource):
     parser.add_argument(
         "email", type=str, required=True, help="This field cannot be blank."
     )
+    parser.add_argument(
+        "token", type=str, required=True, help="Google token is required."
+    )
 
     def post(self):
         data = LoginGoogle.parser.parse_args()
@@ -143,16 +149,49 @@ class LoginGoogle(Resource):
             return {"error": "No data provided"}, 400
 
         email = data["email"]
-
-        # Verifica si el usuario ya existe
-        existing_user = UserModel.query.filter_by(
-            email=email, active=True
-        ).one_or_none()
-        if not existing_user:
-            return {"message": "El usuario no existe, debe registrarse primero"}, 400
+        token = data["token"]
 
         try:
+            # Verificar el token de Google
+            GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
 
+            idinfo = id_token.verify_oauth2_token(
+                token,
+                requests.Request(),
+                GOOGLE_CLIENT_ID
+            )
+
+            # Verificar que el email del token coincide con el proporcionado
+            if idinfo['email'] != email:
+                return {"error": "Email verification failed"}, 401
+
+            # Verifica si el usuario ya existe
+            existing_user = UserModel.query.filter_by(
+                email=email, active=True
+            ).one_or_none()
+
+            if not existing_user:
+                new_user = UserModel(
+                    email=idinfo["email"],
+                    name=idinfo["name"],
+                    password=None,
+                    auth_provider="google",
+                    google_id=idinfo["sub"]
+                )
+                new_user.save_to_db()
+
+                access_token = create_access_token(identity=str(new_user.id))
+                refresh_token = create_refresh_token(identity=str(new_user.id))
+
+                response = make_response({
+                    "message": "User created and logged in successfully.",
+                    "user": new_user.json(),
+                    "access_token": access_token,
+                    "refresh_token": refresh_token,
+                })
+                return response
+
+            # Crear tokens JWT
             access_token = create_access_token(identity=str(existing_user.id))
             refresh_token = create_refresh_token(identity=str(existing_user.id))
 
@@ -160,19 +199,22 @@ class LoginGoogle(Resource):
             response = make_response({
                 "message": "User login successfully.",
                 "user": existing_user.json(),
+                "access_token": access_token,
+                "refresh_token": refresh_token,
             })
-            response.set_cookie(
-                "access_token", access_token, httponly=True, secure=True, samesite="Strict"
-            )
-            response.set_cookie(
-                "refresh_token", refresh_token, httponly=True, secure=True, samesite="Strict"
-            )
             return response
 
+        except ValueError:
+            # Token inválido
+            print(f"Invalid token: {token}")
+
+
+            return {"error": "Invalid token"}, 401
         except Exception as e:
             # Logea la excepción para depurar
-            print(f"Error al guardar usuario: {e}")
-            return {"error": "Database error"}, 500
+            print(f"Error during login: {e}")
+            return {"error": "Authentication error", "e": e}, 500
+
 
 
 class UserRegister(Resource):
@@ -297,7 +339,7 @@ class ManagerRegister(Resource):
                 }
                 user = UserModel(**user_data)
                 db.session.add(user)
-                
+
                 # Hacer flush para obtener el ID del usuario
                 db.session.flush()
 

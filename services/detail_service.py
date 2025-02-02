@@ -20,7 +20,7 @@ class Detail(Resource):
     parser.add_argument('duration', type=int, required=True, help="This field cannot be left blank!")
     parser.add_argument('photos', type=dict, required=False, help="This field must be a valid JSON object")
 
-    # @jwt_required()
+    @jwt_required()
     def get(self): # category_name, site_name, service_name, site_address
         parser = reqparse.RequestParser()
         parser.add_argument('site_id', type=int, location='args', required=False)
