@@ -382,16 +382,12 @@ class UserLogin(Resource):
     parser.add_argument(
         "password", type=str, required=True, help="This field cannot be blank."
     )
-    # parser.add_argument(
-    #     "token", type=str, required=True, help="This field cannot be blank."
-    # )
 
     def post(self):
         data = UserLogin.parser.parse_args()
         email = data["email"]
         name = data["name"]
         password = data["password"]
-        # token = data["token"]
 
         if not email and not name:
             return {"message": "Invalid credentials"}, 401
@@ -405,15 +401,20 @@ class UserLogin(Resource):
             return {"message": "Invalid credentials"}, 401
 
         user = user_email if user_email is not None else user_name
-        if not user or not user.check_password(password): #or not user.verify_totp(token):
+        if not user or not user.check_password(password):
             return {"message": "Invalid credentials"}, 401
+
+        # Usar el método is_manager que implementamos
+        is_manager_role = UserModel.is_manager(user.id)
 
         access_token = create_access_token(identity=str(user.id))
         refresh_token = create_refresh_token(identity=str(user.id))
+
         return {
             "user": user.json(),
             "access_token": access_token,
             "refresh_token": refresh_token,
+            "manager": is_manager_role,
         }, 200
 
 
