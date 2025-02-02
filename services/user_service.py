@@ -15,6 +15,9 @@ from flask_jwt_extended import (
 )
 from flask import make_response
 from config.db_config import db
+from google.oauth2 import id_token
+from google.auth.transport import requests
+import os
 
 class User(Resource):
     parser = reqparse.RequestParser()
@@ -110,8 +113,8 @@ class RegisterGoogle(Resource):
             )
             new_user.save_to_db()
 
-            access_token = create_access_token(identity=new_user.json())
-            refresh_token = create_refresh_token(identity=new_user.json())
+            access_token = create_access_token(identity=str(new_user.id))
+            refresh_token = create_refresh_token(identity=str(new_user.id))
 
             # Crear la respuesta y establecer las cookies
             response = make_response({
@@ -129,11 +132,14 @@ class RegisterGoogle(Resource):
         except Exception as e:
             print(f"Error al guardar usuario: {e}")
             return {"error": "Database error"}, 500
-        
+
 class LoginGoogle(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument(
         "email", type=str, required=True, help="This field cannot be blank."
+    )
+    parser.add_argument(
+        "token", type=str, required=True, help="Google token is required."
     )
 
     def post(self):
@@ -143,36 +149,72 @@ class LoginGoogle(Resource):
             return {"error": "No data provided"}, 400
 
         email = data["email"]
+        token = data["token"]
 
-        # Verifica si el usuario ya existe
-        existing_user = UserModel.query.filter_by(
-            email=email, active=True
-        ).one_or_none()
-        if not existing_user:
-            return {"message": "El usuario no existe, debe registrarse primero"}, 400
-            
         try:
+            # Verificar el token de Google
+            GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
 
-            access_token = create_access_token(identity=existing_user.json())
-            refresh_token = create_refresh_token(identity=existing_user.json())
+            idinfo = id_token.verify_oauth2_token(
+                token,
+                requests.Request(),
+                GOOGLE_CLIENT_ID
+            )
+
+            # Verificar que el email del token coincide con el proporcionado
+            if idinfo['email'] != email:
+                return {"error": "Email verification failed"}, 401
+
+            # Verifica si el usuario ya existe
+            existing_user = UserModel.query.filter_by(
+                email=email, active=True
+            ).one_or_none()
+
+            if not existing_user:
+                new_user = UserModel(
+                    email=idinfo["email"],
+                    name=idinfo["name"],
+                    password=None,
+                    auth_provider="google",
+                    google_id=idinfo["sub"]
+                )
+                new_user.save_to_db()
+
+                access_token = create_access_token(identity=str(new_user.id))
+                refresh_token = create_refresh_token(identity=str(new_user.id))
+
+                response = make_response({
+                    "message": "User created and logged in successfully.",
+                    "user": new_user.json(),
+                    "access_token": access_token,
+                    "refresh_token": refresh_token,
+                })
+                return response
+
+            # Crear tokens JWT
+            access_token = create_access_token(identity=str(existing_user.id))
+            refresh_token = create_refresh_token(identity=str(existing_user.id))
 
             # Crear la respuesta y establecer las cookies
             response = make_response({
                 "message": "User login successfully.",
                 "user": existing_user.json(),
+                "access_token": access_token,
+                "refresh_token": refresh_token,
             })
-            response.set_cookie(
-                "access_token", access_token, httponly=True, secure=True, samesite="Strict"
-            )
-            response.set_cookie(
-                "refresh_token", refresh_token, httponly=True, secure=True, samesite="Strict"
-            )
             return response
 
+        except ValueError:
+            # Token inválido
+            print(f"Invalid token: {token}")
+
+
+            return {"error": "Invalid token"}, 401
         except Exception as e:
             # Logea la excepción para depurar
-            print(f"Error al guardar usuario: {e}")
-            return {"error": "Database error"}, 500
+            print(f"Error during login: {e}")
+            return {"error": "Authentication error", "e": e}, 500
+
 
 
 class UserRegister(Resource):
@@ -199,7 +241,7 @@ class UserRegister(Resource):
             and UserModel.is_valid_email(data["email"])
         ):
             return {"message": "A user with that email already exists"}, 400
-        
+
         if not UserModel.is_valid_email(data["email"]):
             return {"message": "Invalid email format"}, 400
 
@@ -212,7 +254,7 @@ class UserRegister(Resource):
             ).one_or_none()
             user.recover_user()
             return user.json(), 201
-        
+
         if data["password"] == "" or len(data["password"]) < 8:
             return {"message": "Password must be at least 8 characters"}, 400
 
@@ -220,8 +262,8 @@ class UserRegister(Resource):
         user.password = generate_password_hash(data["password"], method="pbkdf2")
         try:
             user.save_to_db()
-            access_token = create_access_token(identity=user.json())
-            refresh_token = create_refresh_token(identity=user.json())
+            access_token = create_access_token(identity=str(user.id))
+            refresh_token = create_refresh_token(identity=str(user.id))
             return {
                 "user": user.json(),
                 "access_token": access_token,
@@ -267,7 +309,7 @@ class ManagerRegister(Resource):
             and UserModel.is_valid_email(data["email"])
         ):
             return {"message": "A user with that email already exists"}, 400
-        
+
         if not UserModel.is_valid_email(data["email"]):
             return {"message": "Invalid email format"}, 400
 
@@ -297,7 +339,7 @@ class ManagerRegister(Resource):
                 }
                 user = UserModel(**user_data)
                 db.session.add(user)
-                
+
                 # Hacer flush para obtener el ID del usuario
                 db.session.flush()
 
@@ -315,8 +357,8 @@ class ManagerRegister(Resource):
             db.session.commit()
 
             # Generate tokens
-            access_token = create_access_token(identity=user.json())
-            refresh_token = create_refresh_token(identity=user.json())
+            access_token = create_access_token(identity=str(user.id))
+            refresh_token = create_refresh_token(identity=str(user.id))
 
             return {
                 "user": user.json(),
@@ -362,12 +404,12 @@ class UserLogin(Resource):
         if not user or not user.check_password(password):
             return {"message": "Invalid credentials"}, 401
 
-        access_token = create_access_token(identity=user.json())
-        refresh_token = create_refresh_token(identity=user.json())
-
         # Usar el método is_manager que implementamos
         is_manager_role = UserModel.is_manager(user.id)
-        
+
+        access_token = create_access_token(identity=str(user.id))
+        refresh_token = create_refresh_token(identity=str(user.id))
+
         return {
             "user": user.json(),
             "access_token": access_token,
@@ -403,8 +445,8 @@ class User2FA(Resource):
             return {"message": "User not found"}, 404
 
         return {"uri": user.get_totp_uri()}, 200
-    
-    
+
+
 class Test(Resource):
     def get(self):
         users = UserModel.get_all_users()
