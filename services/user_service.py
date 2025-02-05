@@ -62,7 +62,7 @@ class User(Resource):
         except:
             return {"message": "An error occurred updating the user."}, 500
 
-    # @jwt_required()
+    @jwt_required()
     def delete(self, id):
         user = UserModel.find_by_id(id)
         if user:
@@ -75,12 +75,13 @@ class User(Resource):
         now = int(datetime.now(timezone.utc).timestamp())
         ttl = exp - now  # Tiempo restante hasta la expiración en segundos
 
+        return {"message": "User deleted"}, 200
         # Bloquear el token en Redis con el TTL
-        try:
-            redis_client.setex(jti, ttl, "blocked")  # Almacenar JTI con TTL
-            return {"message": "User deleted and token invalidated"}, 200
-        except:
-            return {"message": "An error occurred deleting the user."}, 500
+        # try:
+        #     redis_client.setex(jti, ttl, "blocked")  # Almacenar JTI con TTL
+        #     return {"message": "User deleted and token invalidated"}, 200
+        # except:
+        #     return {"message": "An error occurred deleting the user."}, 500
 
 class RegisterGoogle(Resource):
     parser = reqparse.RequestParser()
@@ -190,6 +191,12 @@ class LoginGoogle(Resource):
                     "refresh_token": refresh_token,
                 })
                 return response
+
+            if existing_user.password and existing_user.auth_provider == "credentials":
+                # save google id to user
+                existing_user.google_id = idinfo["sub"]
+                existing_user.auth_provider += "-google"
+                existing_user.save_to_db()
 
             # Crear tokens JWT
             access_token = create_access_token(identity=str(existing_user.id))
