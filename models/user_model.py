@@ -64,12 +64,12 @@ class UserModel(db.Model):
         db.session.commit()
 
     def delete_from_db(self):
-        self.is_active = False
+        self.active = False
         db.session.add(self)
         db.session.commit()
 
     def recover_user(self):
-        self.is_active = True
+        self.active = True
         db.session.add(self)
         db.session.commit()
 
@@ -87,7 +87,7 @@ class UserModel(db.Model):
     @classmethod
     def find_by_google_id(cls, google_id):
         return cls.query.filter_by(google_id=google_id, active=True).first()
-      
+
     @staticmethod
     def is_valid_email(email):
         regex = re.compile(

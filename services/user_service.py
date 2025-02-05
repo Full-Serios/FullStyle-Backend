@@ -67,7 +67,7 @@ class User(Resource):
         user = UserModel.find_by_id(id)
         if user:
             user.delete_from_db()
-
+            return {"message": "User deleted"}, 200
         # Obtener información del token actual
         token = get_jwt()
         jti = token["jti"]  # Identificador único del token
