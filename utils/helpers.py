@@ -11,6 +11,7 @@ from models.site_model import SiteModel
 from models.category_model import CategoryModel
 from models.site_has_category_model import SiteHasCategoryModel
 from models.worker_has_service_model import WorkerHasServiceModel
+from models.manager_model import ManagerModel
 
 #
 #   Helpers for appointment
@@ -84,7 +85,7 @@ def check_availability_exists(availability_id):
         return None, "Availability not found"
     return availability, None
 
-# Have to check if it doesn't conflict with updating the same register of availability 
+# Have to check if it doesn't conflict with updating the same register of availability
 def check_overlapping_availability(worker_id, weekday, starttime, endtime, current_availability_id=None):
     overlapping_availability = AvailabilityModel.query.filter(
         AvailabilityModel.worker_id == worker_id,
@@ -194,7 +195,7 @@ def check_site_category_exists(site_id, category_id):
 #
 
 def check_manager_exists(manager_id):
-    manager = WorkerModel.query.filter_by(id=manager_id).first()
+    manager = ManagerModel.query.filter_by(id=manager_id).first()
     if not manager:
         return None, "Manager not found"
     return manager, None
@@ -260,7 +261,7 @@ def check_overlapping_appointments(worker, worker_id, service_id, date, time, sc
         return True, "Worker is available"
     else:
         return False, "Worker is not available for the full duration of the service"
-    
+
 def is_worker_available(worker_id, date, time, service_id, current_appointment_id=None):
     # Check if the worker is active
     worker, error = check_worker_active(worker_id)
