@@ -28,6 +28,7 @@ class Detail(Resource):
         parser.add_argument('price', type=int, location='args', required=False)
         parser.add_argument('name', type=str, location='args', required=False)
         parser.add_argument('category_id', type=int, location='args', required=False)
+        parser.add_argument('limit', type=int, location='args', required=False, default=10)
         args = parser.parse_args()
 
         query = DetailModel.query.join(ServiceModel, DetailModel.service_id == ServiceModel.id) \
@@ -49,6 +50,8 @@ class Detail(Resource):
 
         if args['category_id']:
             query = query.filter(ServiceModel.category_id == args['category_id'])
+
+        query = query.limit(args['limit'])
 
         details = query.all()
 
