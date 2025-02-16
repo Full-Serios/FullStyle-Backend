@@ -12,6 +12,7 @@ from models.category_model import CategoryModel
 from models.site_has_category_model import SiteHasCategoryModel
 from models.worker_has_service_model import WorkerHasServiceModel
 from models.manager_model import ManagerModel
+from sqlalchemy import func
 
 #
 #   Helpers for appointment
@@ -237,6 +238,7 @@ def check_overlapping_appointments(worker, worker_id, service_id, date, time, sc
         # Right overlapping appointment (before)
         right_overlapping_appointment = AppointmentModel.query.filter(
             AppointmentModel.worker_id == worker_id,
+            func.date(AppointmentModel.appointmenttime) == date,
             AppointmentModel.appointmenttime <= datetime.combine(date, time),
             AppointmentModel.id != current_appointment_id
         ).order_by(AppointmentModel.appointmenttime.desc()).first()
@@ -249,6 +251,7 @@ def check_overlapping_appointments(worker, worker_id, service_id, date, time, sc
         # Left overlapping appointment (after)
         left_overlapping_appointment = AppointmentModel.query.filter(
             AppointmentModel.worker_id == worker_id,
+            func.date(AppointmentModel.appointmenttime) == date,
             AppointmentModel.appointmenttime >= datetime.combine(date, time),
             AppointmentModel.id != current_appointment_id
         ).order_by(AppointmentModel.appointmenttime.asc()).first()
