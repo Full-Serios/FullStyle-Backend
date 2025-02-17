@@ -3,6 +3,7 @@ from models.manager_model import ManagerModel
 from datetime import datetime, timezone
 from flask_restful import Resource, reqparse
 import utils.encryption as encryption
+import utils.send_email as send_email
 import bcrypt
 from werkzeug.security import generate_password_hash
 from models.token_blocklist_model import redis_client
@@ -12,12 +13,14 @@ from flask_jwt_extended import (
     jwt_required,
     create_refresh_token,
     get_jwt,
+    decode_token
 )
 from flask import make_response
 from config.db_config import db
 from google.oauth2 import id_token
 from google.auth.transport import requests
 import os
+from datetime import timedelta
 
 class User(Resource):
     parser = reqparse.RequestParser()
@@ -462,3 +465,55 @@ class Test(Resource):
             users_json = [user.json() for user in users]
             return users_json, 200
         return {"message": "User not found"}, 404
+
+class ResetPasswordRequest(Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument("email", type=str, required=True, help="This field cannot be blank.")
+
+    def post(self):
+        try:
+            data = ResetPasswordRequest.parser.parse_args()
+            email = data["email"]
+
+            user = UserModel.query.filter_by(email=email, active=True).first()
+            if not user:
+                return {"message": "User not found"}, 404
+
+            reset_token = create_access_token(identity=str(user.id), expires_delta=timedelta(minutes=15))
+
+            res = send_email.ResetPassword(email, user.name, reset_token)
+
+            return {"message": "A reset link has been sent to your email"}, 200
+        except Exception as e:
+            return {"message": f"Error: {str(e)}"}, 400
+
+class ResetPasswordConfirm(Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument("token", type=str, required=True, help="Token is required.")
+    parser.add_argument("password", type=str, required=True, help="New password is required.")
+
+    def post(self):
+        data = ResetPasswordConfirm.parser.parse_args()
+        token = data["token"]
+        new_password = data["password"]
+
+        if len(new_password) < 8:
+            return {"message": "Password must be at least 8 characters"}, 400
+
+        try:
+            decoded_token = decode_token(token)
+            print(decoded_token)
+            user_id = decoded_token.get("sub")
+
+            user = UserModel.find_by_id(user_id)
+            if not user:
+                return {"message": "Invalid token or user not found"}, 400
+
+            # Actualizar la contraseña
+            user.password = generate_password_hash(new_password, method="pbkdf2")
+            user.save_to_db()
+
+            return {"message": "Password successfully reset"}, 200
+
+        except Exception as e:
+            return {"message": f"Error: {str(e)}"}, 400
