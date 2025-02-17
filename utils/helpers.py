@@ -289,3 +289,51 @@ def is_worker_available(worker_id, date, time, service_id, current_appointment_i
         return check_overlapping_appointments(worker, worker_id, service_id, date, time, slot, current_appointment_id)
     else:
         return False, error
+
+def compute_daily_schedule(worker, date):
+    weekday = date.strftime('%A')
+    # Check if worker has a day off
+    dayoff = DaysOffModel.query.filter_by(worker_id=worker.id, dayoff=date).first()
+    if dayoff:
+        return {"available": [], "occupied": []}
+
+    # Get the worker's seasonal schedules
+    seasonal_schedule = SeasonalScheduleModel.query.filter(
+        SeasonalScheduleModel.worker_id == worker.id,
+        SeasonalScheduleModel.startdate <= date,
+        SeasonalScheduleModel.enddate >= date
+    ).first()
+
+    # Initialize the available list
+    available = []
+    if seasonal_schedule:
+        available.append({
+            "start": str(seasonal_schedule.starttime),
+            "end": str(seasonal_schedule.endtime)
+        })
+    else:
+        # Get the worker's regular availability
+        slots = AvailabilityModel.query.filter_by(worker_id=worker.id, weekday=weekday).all()
+        for slot in slots:
+            available.append({
+                "start": str(slot.starttime),
+                "end": str(slot.endtime)
+            })
+
+    # Get the worker's appointments
+    appointments = AppointmentModel.query.filter(
+        AppointmentModel.worker_id == worker.id,
+        func.date(AppointmentModel.appointmenttime) == date
+    ).all()
+
+    # Initialize and populate the occupied list
+    occupied = []
+    for appointment in appointments:
+        detail = DetailModel.query.filter_by(site_id=worker.site_id, service_id=appointment.service_id).first()
+        if detail:
+            end_time = (appointment.appointmenttime + timedelta(minutes=detail.duration)).time()
+            occupied.append({
+                "start": str(appointment.appointmenttime.time()),
+                "end": str(end_time)
+            })
+    return {"available": available, "occupied": occupied}
