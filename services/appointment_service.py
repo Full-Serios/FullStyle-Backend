@@ -6,7 +6,8 @@ from sqlalchemy import func
 from utils.helpers import (
     check_appointment_time,
     check_appointment_exists,
-    is_worker_available
+    is_worker_available,
+    compute_appointment_statistics
 )
 
 class Appointment(Resource):
@@ -139,269 +140,123 @@ class Appointment(Resource):
         return {"message": "Appointment not found"}, 404
 
 # How many appointments have been made with an specific worker in a site
-class WorkerStatistics(Resource):
+class AppointmentWorkerStatistics(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('site_id', type=int, required=True, location='args', help="site_id is required")
     parser.add_argument('period', type=str, required=False, default='total', location='args', help="Period can be total, daily, weekly, monthly")
     parser.add_argument('count_periods', type=int, required=False, default=0, location='args', help="Number of days/weeks/months to include from current date backwards if > 0")
-
+    
     # @jwt_required()
     def get(self):
-        args = WorkerStatistics.parser.parse_args()
+        args = AppointmentWorkerStatistics.parser.parse_args()
         site_id = args['site_id']
         period = args['period'].lower()
         count_periods = args['count_periods']
         
-        now = datetime.now()
-
-        # Number of days/weeks/months to include from current date backwards
-        if count_periods > 0:
-            if period == 'daily':
-                start_date = now - relativedelta(days=count_periods)
-            elif period == 'weekly':
-                start_date = now - relativedelta(weeks=count_periods)
-            elif period == 'monthly':
-                start_date = now - relativedelta(months=count_periods)
-            else:
-                start_date = None
-        else:
-            start_date = None
+        results = compute_appointment_statistics(site_id, period, count_periods, AppointmentModel.worker_id)
         
-        base_query = AppointmentModel.query.filter(AppointmentModel.site_id == site_id)
-        if start_date:
-            base_query = base_query.filter(AppointmentModel.appointmenttime >= start_date, AppointmentModel.appointmenttime <= now)
-        
-        if period == 'total':
-            results = (
-                base_query
-                .with_entities(AppointmentModel.worker_id, func.count(AppointmentModel.id).label("total"))
-                .group_by(AppointmentModel.worker_id)
-                .all()
-            )
-        elif period == 'monthly':
-            results = (
-                base_query
-                .with_entities(
-                    AppointmentModel.worker_id,
-                    func.extract('year', AppointmentModel.appointmenttime).label("year"),
-                    func.extract('month', AppointmentModel.appointmenttime).label("month"),
-                    func.count(AppointmentModel.id).label("total")
-                )
-                .group_by(AppointmentModel.worker_id,
-                          func.extract('year', AppointmentModel.appointmenttime),
-                          func.extract('month', AppointmentModel.appointmenttime))
-                .all()
-            )
-        elif period == 'weekly':
-            results = (
-                base_query
-                .with_entities(
-                    AppointmentModel.worker_id,
-                    func.date_trunc('week', AppointmentModel.appointmenttime).label("week_start"),
-                    func.count(AppointmentModel.id).label("total")
-                )
-                .group_by(AppointmentModel.worker_id, func.date_trunc('week', AppointmentModel.appointmenttime))
-                .all()
-            )
-        elif period == 'daily':
-            results = (
-                base_query
-                .with_entities(
-                    AppointmentModel.worker_id,
-                    func.date(AppointmentModel.appointmenttime).label("day"),
-                    func.count(AppointmentModel.id).label("total")
-                )
-                .group_by(AppointmentModel.worker_id, func.date(AppointmentModel.appointmenttime))
-                .all()
-            )
-        else:
-            return {"message": "Invalid period parameter. Use total, daily, weekly or monthly"}, 400
-
         # Format results
         stats = []
-        for item in results:
-            record = {"worker_id": item.worker_id, "total": item.total}
-            if period == 'daily':
-                record["day"] = item.day.strftime('%Y-%m-%d')
-            if period == 'weekly':
-                record["week_start"] = item.week_start.strftime('%Y-%m-%d')
-            if period == 'monthly':
-                record["year"] = int(item.year)
-                record["month"] = int(item.month)
-            stats.append(record)
-            
+        if period == 'total' and type(results) is dict:
+            stats = results 
+        else:
+            for item in results:
+                record = {"worker_id": item.worker_id, "total": item.total}
+                if period == 'daily':
+                    record["day"] = item.day.strftime('%Y-%m-%d')
+                elif period == 'weekly':
+                    record["week_start"] = item.week_start.strftime('%Y-%m-%d')
+                elif period == 'monthly':
+                    record["year"] = int(item.year)
+                    record["month"] = int(item.month)
+                stats.append(record)
+                
         return {
-            "site_id": site_id, 
-            "period": period, 
-            "count_periods": count_periods, 
+            "site_id": site_id,
+            "period": period,
+            "count_periods": count_periods,
             "statistics": stats
         }, 200
 
 # How many appointments have been made in a site
-class SiteStatistics(Resource):
+class AppointmentSiteStatistics(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('site_id', type=int, required=True, location='args', help="site_id is required")
-    parser.add_argument('period', type=str, required=False, default='total', location='args', help="Period can be total, daily, weekly, monthly")
+    parser.add_argument('period', type=str, required=False, default='total', location='args', help="Period can be total, daily, weekly, or monthly")
     parser.add_argument('count_periods', type=int, required=False, default=0, location='args', help="Number of days/weeks/months to include from current date backwards if > 0")
-    
+
     # @jwt_required()
     def get(self):
-        args = SiteStatistics.parser.parse_args()
+        args = AppointmentSiteStatistics.parser.parse_args()
         site_id = args['site_id']
         period = args['period'].lower()
         count_periods = args['count_periods']
-        
-        now = datetime.now()
-        
-        # Calcular la fecha de inicio según el período y count_periods
-        if count_periods > 0:
-            if period == 'daily':
-                start_date = now - relativedelta(days=count_periods)
-            elif period == 'weekly':
-                start_date = now - relativedelta(weeks=count_periods)
-            elif period == 'monthly':
-                start_date = now - relativedelta(months=count_periods)
-            else:
-                start_date = None
-        else:
-            start_date = None
-        
-        base_query = AppointmentModel.query.filter(AppointmentModel.site_id == site_id)
-        if start_date:
-            base_query = base_query.filter(AppointmentModel.appointmenttime >= start_date, AppointmentModel.appointmenttime <= now)
-        
-        # Consultas según el período
-        if period == 'total':
-            total = base_query.count()
-            stats = {"total": total}
+
+        results = compute_appointment_statistics(site_id, period, count_periods, group_column=None)
+
+        # Format results
+        if period == 'total' and isinstance(results, dict):
+            stats = results
         elif period == 'daily':
-            results = (
-                base_query
-                .with_entities(
-                    func.date(AppointmentModel.appointmenttime).label("day"),
-                    func.count(AppointmentModel.id).label("total")
-                )
-                .group_by(func.date(AppointmentModel.appointmenttime))
-                .all()
-            )
             stats = [{"day": r.day.strftime('%Y-%m-%d'), "total": r.total} for r in results]
         elif period == 'weekly':
-            results = (
-                base_query
-                .with_entities(
-                    func.date_trunc('week', AppointmentModel.appointmenttime).label("week_start"),
-                    func.count(AppointmentModel.id).label("total")
-                )
-                .group_by(func.date_trunc('week', AppointmentModel.appointmenttime))
-                .all()
-            )
             stats = [{"week_start": r.week_start.strftime('%Y-%m-%d'), "total": r.total} for r in results]
         elif period == 'monthly':
-            results = (
-                base_query
-                .with_entities(
-                    func.extract('year', AppointmentModel.appointmenttime).label("year"),
-                    func.extract('month', AppointmentModel.appointmenttime).label("month"),
-                    func.count(AppointmentModel.id).label("total")
-                )
-                .group_by(
-                    func.extract('year', AppointmentModel.appointmenttime),
-                    func.extract('month', AppointmentModel.appointmenttime)
-                )
-                .all()
-            )
             stats = [{"year": int(r.year), "month": int(r.month), "total": r.total} for r in results]
         else:
             return {"message": "Invalid period parameter. Use total, daily, weekly or monthly"}, 400
-        
+
         return {
-            "site_id": site_id, 
-            "period": period, 
-            "count_periods": count_periods, 
+            "site_id": site_id,
+            "period": period,
+            "count_periods": count_periods,
             "statistics": stats
         }, 200
 
 # How many appointments have been made for each service in a site
-class ServiceStatistics(Resource):
+class AppointmentServiceStatistics(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('site_id', type=int, required=True, location='args', help="site_id is required")
-    parser.add_argument('period', type=str, required=False, default='total', location='args', help="Period can be total, daily, monthly")
-    parser.add_argument('count_periods', type=int, required=False, default=0, location='args', help="Number of days/months to include from current date backwards if > 0")
+    parser.add_argument('period', type=str, required=False, default='total', location='args', help="Period can be total, daily, weekly, or monthly")
+    parser.add_argument('count_periods', type=int, required=False, default=0, location='args', help="Number of days/weeks/months to include from current date backwards if > 0")
     
     # @jwt_required()
     def get(self):
-        args = ServiceStatistics.parser.parse_args()
+        args = AppointmentServiceStatistics.parser.parse_args()
         site_id = args['site_id']
         period = args['period'].lower()
         count_periods = args['count_periods']
         
-        now = datetime.now()
-        
-        # Calcular la fecha de inicio según el período y count_periods
-        if count_periods > 0:
-            if period == 'daily':
-                start_date = now - relativedelta(days=count_periods)
-            elif period == 'monthly':
-                start_date = now - relativedelta(months=count_periods)
-            else:
-                start_date = None
-        else:
-            start_date = None
-        
-        base_query = AppointmentModel.query.filter(AppointmentModel.site_id == site_id)
-        if start_date:
-            base_query = base_query.filter(AppointmentModel.appointmenttime >= start_date, AppointmentModel.appointmenttime <= now)
-        
-        if period == 'total':
-            results = (
-                base_query
-                .with_entities(AppointmentModel.service_id, func.count(AppointmentModel.id).label("total"))
-                .group_by(AppointmentModel.service_id)
-                .all()
-            )
-        elif period == 'daily':
-            results = (
-                base_query
-                .with_entities(
-                    AppointmentModel.service_id,
-                    func.date(AppointmentModel.appointmenttime).label("day"),
-                    func.count(AppointmentModel.id).label("total")
-                )
-                .group_by(AppointmentModel.service_id, func.date(AppointmentModel.appointmenttime))
-                .all()
-            )
-        elif period == 'monthly':
-            results = (
-                base_query
-                .with_entities(
-                    AppointmentModel.service_id,
-                    func.extract('year', AppointmentModel.appointmenttime).label("year"),
-                    func.extract('month', AppointmentModel.appointmenttime).label("month"),
-                    func.count(AppointmentModel.id).label("total")
-                )
-                .group_by(
-                    AppointmentModel.service_id,
-                    func.extract('year', AppointmentModel.appointmenttime),
-                    func.extract('month', AppointmentModel.appointmenttime)
-                )
-                .all()
-            )
-        else:
-            return {"message": "Invalid period parameter. Use total, daily or monthly"}, 400
+        results = compute_appointment_statistics(site_id, period, count_periods, AppointmentModel.service_id)
 
-        stats = []
-        for item in results:
-            record = {"service_id": item.service_id, "total": item.total}
-            if period == 'daily':
-                record["day"] = item.day.strftime('%Y-%m-%d')
-            if period == 'monthly':
-                record["year"] = int(item.year)
-                record["month"] = int(item.month)
-            stats.append(record)
-            
+        # Format results
+        if period == 'total' and isinstance(results, dict):
+            stats = results
+        elif period == 'daily':
+            stats = [{
+                "service_id": r.service_id,
+                "day": r.day.strftime('%Y-%m-%d'),
+                "total": r.total
+            } for r in results]
+        elif period == 'weekly':
+            stats = [{
+                "service_id": r.service_id,
+                "week_start": r.week_start.strftime('%Y-%m-%d'),
+                "total": r.total
+            } for r in results]
+        elif period == 'monthly':
+            stats = [{
+                "service_id": r.service_id,
+                "year": int(r.year),
+                "month": int(r.month),
+                "total": r.total
+            } for r in results]
+        else:
+            return {"message": "Invalid period parameter. Use total, daily, weekly or monthly"}, 400
+
         return {
             "site_id": site_id,
-            "period": period, 
-            "count_periods": count_periods, 
+            "period": period,
+            "count_periods": count_periods,
             "statistics": stats
         }, 200

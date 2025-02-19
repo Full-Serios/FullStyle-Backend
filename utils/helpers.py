@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 from models.worker_model import WorkerModel
 from models.availability_model import AvailabilityModel
 from models.days_off_model import DaysOffModel
 from models.seasonal_schedule_model import SeasonalScheduleModel
 from models.detail_model import DetailModel
+from models.payment_model import PaymentModel
 from models.appointment_model import AppointmentModel
 from models.service_model import ServiceModel
 from models.category_model import CategoryModel
@@ -337,3 +339,233 @@ def compute_daily_schedule(worker, date):
                 "end": str(end_time)
             })
     return {"available": available, "occupied": occupied}
+
+#
+#   Helpers for appointment and payment statistics
+#
+
+def compute_appointment_statistics(site_id, period, count_periods, group_column=None):
+    now = datetime.now()
+
+    if count_periods > 0:
+        if period == 'daily':
+            start_date = now - timedelta(days=count_periods)
+        elif period == 'weekly':
+            start_date = now - timedelta(weeks=count_periods)
+        elif period == 'monthly':
+            start_date = now - relativedelta(months=count_periods)
+        else:
+            start_date = None
+    else:
+        start_date = None
+
+    base_query = AppointmentModel.query.filter(AppointmentModel.site_id == site_id)
+    if start_date:
+        base_query = base_query.filter(
+            AppointmentModel.appointmenttime >= start_date,
+            AppointmentModel.appointmenttime <= now
+        )
+
+    if period == 'total':
+        if group_column:
+            results = (
+                base_query
+                .with_entities(group_column, func.count(AppointmentModel.id).label("total"))
+                .group_by(group_column)
+                .all()
+            )
+        else:
+            total = base_query.count()
+            return {"total": total}
+    elif period == 'daily':
+        if group_column:
+            results = (
+                base_query
+                .with_entities(
+                    group_column,
+                    func.date(AppointmentModel.appointmenttime).label("day"),
+                    func.count(AppointmentModel.id).label("total")
+                )
+                .group_by(group_column, func.date(AppointmentModel.appointmenttime))
+                .all()
+            )
+        else:
+            results = (
+                base_query
+                .with_entities(
+                    func.date(AppointmentModel.appointmenttime).label("day"),
+                    func.count(AppointmentModel.id).label("total")
+                )
+                .group_by(func.date(AppointmentModel.appointmenttime))
+                .all()
+            )
+    elif period == 'weekly':
+        if group_column:
+            results = (
+                base_query
+                .with_entities(
+                    group_column,
+                    func.date_trunc('week', AppointmentModel.appointmenttime).label("week_start"),
+                    func.count(AppointmentModel.id).label("total")
+                )
+                .group_by(group_column, func.date_trunc('week', AppointmentModel.appointmenttime))
+                .all()
+            )
+        else:
+            results = (
+                base_query
+                .with_entities(
+                    func.date_trunc('week', AppointmentModel.appointmenttime).label("week_start"),
+                    func.count(AppointmentModel.id).label("total")
+                )
+                .group_by(func.date_trunc('week', AppointmentModel.appointmenttime))
+                .all()
+            )
+    elif period == 'monthly':
+        if group_column:
+            results = (
+                base_query
+                .with_entities(
+                    group_column,
+                    func.extract('year', AppointmentModel.appointmenttime).label("year"),
+                    func.extract('month', AppointmentModel.appointmenttime).label("month"),
+                    func.count(AppointmentModel.id).label("total")
+                )
+                .group_by(group_column,
+                          func.extract('year', AppointmentModel.appointmenttime),
+                          func.extract('month', AppointmentModel.appointmenttime))
+                .all()
+            )
+        else:
+            results = (
+                base_query
+                .with_entities(
+                    func.extract('year', AppointmentModel.appointmenttime).label("year"),
+                    func.extract('month', AppointmentModel.appointmenttime).label("month"),
+                    func.count(AppointmentModel.id).label("total")
+                )
+                .group_by(func.extract('year', AppointmentModel.appointmenttime),
+                          func.extract('month', AppointmentModel.appointmenttime))
+                .all()
+            )
+    else:
+        raise ValueError("Invalid period parameter. Use total, daily, weekly or monthly.")
+
+    return results
+
+
+def compute_payment_statistics(site_id, period, count_periods, group_column=None):
+    now = datetime.now()
+    if count_periods > 0:
+        if period == 'daily':
+            start_date = now - timedelta(days=count_periods)
+        elif period == 'weekly':
+            start_date = now - timedelta(weeks=count_periods)
+        elif period == 'monthly':
+            start_date = now - relativedelta(months=count_periods)
+        else:
+            start_date = None
+    else:
+        start_date = None
+
+    # Unir Payment con Appointment para filtrar por site_id
+    base_query = PaymentModel.query.join(
+        AppointmentModel, PaymentModel.appointment_id == AppointmentModel.id
+    ).filter(AppointmentModel.site_id == site_id)
+
+    if start_date:
+        base_query = base_query.filter(
+            PaymentModel.timestamp >= start_date,
+            PaymentModel.timestamp <= now
+        )
+
+    if period == 'total':
+        if group_column:
+            results = (
+                base_query
+                .with_entities(group_column, func.sum(PaymentModel.amount).label("total_amount"))
+                .group_by(group_column)
+                .all()
+            )
+        else:
+            total = base_query.with_entities(func.sum(PaymentModel.amount).label("total_amount")).scalar() or 0
+            return {"total_amount": total}
+    elif period == 'daily':
+        if group_column:
+            results = (
+                base_query
+                .with_entities(
+                    group_column,
+                    func.date(PaymentModel.timestamp).label("day"),
+                    func.sum(PaymentModel.amount).label("total_amount")
+                )
+                .group_by(group_column, func.date(PaymentModel.timestamp))
+                .all()
+            )
+        else:
+            results = (
+                base_query
+                .with_entities(
+                    func.date(PaymentModel.timestamp).label("day"),
+                    func.sum(PaymentModel.amount).label("total_amount")
+                )
+                .group_by(func.date(PaymentModel.timestamp))
+                .all()
+            )
+    elif period == 'weekly':
+        if group_column:
+            results = (
+                base_query
+                .with_entities(
+                    group_column,
+                    func.date_trunc('week', PaymentModel.timestamp).label("week_start"),
+                    func.sum(PaymentModel.amount).label("total_amount")
+                )
+                .group_by(group_column, func.date_trunc('week', PaymentModel.timestamp))
+                .all()
+            )
+        else:
+            results = (
+                base_query
+                .with_entities(
+                    func.date_trunc('week', PaymentModel.timestamp).label("week_start"),
+                    func.sum(PaymentModel.amount).label("total_amount")
+                )
+                .group_by(func.date_trunc('week', PaymentModel.timestamp))
+                .all()
+            )
+    elif period == 'monthly':
+        if group_column:
+            results = (
+                base_query
+                .with_entities(
+                    group_column,
+                    func.extract('year', PaymentModel.timestamp).label("year"),
+                    func.extract('month', PaymentModel.timestamp).label("month"),
+                    func.sum(PaymentModel.amount).label("total_amount")
+                )
+                .group_by(
+                    group_column,
+                    func.extract('year', PaymentModel.timestamp),
+                    func.extract('month', PaymentModel.timestamp)
+                )
+                .all()
+            )
+        else:
+            results = (
+                base_query
+                .with_entities(
+                    func.extract('year', PaymentModel.timestamp).label("year"),
+                    func.extract('month', PaymentModel.timestamp).label("month"),
+                    func.sum(PaymentModel.amount).label("total_amount")
+                )
+                .group_by(
+                    func.extract('year', PaymentModel.timestamp),
+                    func.extract('month', PaymentModel.timestamp)
+                )
+                .all()
+            )
+    else:
+        raise ValueError("Invalid period parameter. Use total, daily, weekly or monthly.")
+
+    return results
