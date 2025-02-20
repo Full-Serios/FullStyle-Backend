@@ -58,7 +58,8 @@ class User(Resource):
             user = UserModel(**data)
         else:
             user.password = generate_password_hash(data["password"], method="pbkdf2")
-
+            if ("google" in user.auth_provider):
+                user.auth_provider = "credentials-google"
         try:
             user.save_to_db()
             return user.json(), 200
@@ -201,6 +202,8 @@ class LoginGoogle(Resource):
                 existing_user.auth_provider += "-google"
                 existing_user.save_to_db()
 
+            is_manager_role = UserModel.is_manager(existing_user.id)
+
             # Crear tokens JWT
             access_token = create_access_token(identity=str(existing_user.id))
             refresh_token = create_refresh_token(identity=str(existing_user.id))
@@ -211,6 +214,7 @@ class LoginGoogle(Resource):
                 "user": existing_user.json(),
                 "access_token": access_token,
                 "refresh_token": refresh_token,
+                "manager": is_manager_role
             })
             return response
 
@@ -511,6 +515,8 @@ class ResetPasswordConfirm(Resource):
 
             # Actualizar la contraseña
             user.password = generate_password_hash(new_password, method="pbkdf2")
+            if ("google" in user.auth_provider):
+                user.auth_provider = "credentials-google"
             user.save_to_db()
 
             return {"message": "Password successfully reset"}, 200
