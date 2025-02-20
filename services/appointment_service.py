@@ -1,10 +1,13 @@
 from models.appointment_model import AppointmentModel
 from flask_restful import Resource, reqparse, request
-from datetime import datetime
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
+from sqlalchemy import func
 from utils.helpers import (
     check_appointment_time,
     check_appointment_exists,
-    is_worker_available
+    is_worker_available,
+    compute_appointment_statistics
 )
 
 class Appointment(Resource):
@@ -135,3 +138,125 @@ class Appointment(Resource):
                 return {"message": f"An error occurred deleting the appointment: {str(e)}"}, 500
             return {"message": "Appointment deleted"}, 200
         return {"message": "Appointment not found"}, 404
+
+# How many appointments have been made with an specific worker in a site
+class AppointmentWorkerStatistics(Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('site_id', type=int, required=True, location='args', help="site_id is required")
+    parser.add_argument('period', type=str, required=False, default='total', location='args', help="Period can be total, daily, weekly, monthly")
+    parser.add_argument('count_periods', type=int, required=False, default=0, location='args', help="Number of days/weeks/months to include from current date backwards if > 0")
+    
+    # @jwt_required()
+    def get(self):
+        args = AppointmentWorkerStatistics.parser.parse_args()
+        site_id = args['site_id']
+        period = args['period'].lower()
+        count_periods = args['count_periods']
+        
+        results = compute_appointment_statistics(site_id, period, count_periods, AppointmentModel.worker_id)
+        
+        # Format results
+        stats = []
+        if period == 'total' and type(results) is dict:
+            stats = results 
+        else:
+            for item in results:
+                record = {"worker_id": item.worker_id, "total": item.total}
+                if period == 'daily':
+                    record["day"] = item.day.strftime('%Y-%m-%d')
+                elif period == 'weekly':
+                    record["week_start"] = item.week_start.strftime('%Y-%m-%d')
+                elif period == 'monthly':
+                    record["year"] = int(item.year)
+                    record["month"] = int(item.month)
+                stats.append(record)
+                
+        return {
+            "site_id": site_id,
+            "period": period,
+            "count_periods": count_periods,
+            "statistics": stats
+        }, 200
+
+# How many appointments have been made in a site
+class AppointmentSiteStatistics(Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('site_id', type=int, required=True, location='args', help="site_id is required")
+    parser.add_argument('period', type=str, required=False, default='total', location='args', help="Period can be total, daily, weekly, or monthly")
+    parser.add_argument('count_periods', type=int, required=False, default=0, location='args', help="Number of days/weeks/months to include from current date backwards if > 0")
+
+    # @jwt_required()
+    def get(self):
+        args = AppointmentSiteStatistics.parser.parse_args()
+        site_id = args['site_id']
+        period = args['period'].lower()
+        count_periods = args['count_periods']
+
+        results = compute_appointment_statistics(site_id, period, count_periods, group_column=None)
+
+        # Format results
+        if period == 'total' and isinstance(results, dict):
+            stats = results
+        elif period == 'daily':
+            stats = [{"day": r.day.strftime('%Y-%m-%d'), "total": r.total} for r in results]
+        elif period == 'weekly':
+            stats = [{"week_start": r.week_start.strftime('%Y-%m-%d'), "total": r.total} for r in results]
+        elif period == 'monthly':
+            stats = [{"year": int(r.year), "month": int(r.month), "total": r.total} for r in results]
+        else:
+            return {"message": "Invalid period parameter. Use total, daily, weekly or monthly"}, 400
+
+        return {
+            "site_id": site_id,
+            "period": period,
+            "count_periods": count_periods,
+            "statistics": stats
+        }, 200
+
+# How many appointments have been made for each service in a site
+class AppointmentServiceStatistics(Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('site_id', type=int, required=True, location='args', help="site_id is required")
+    parser.add_argument('period', type=str, required=False, default='total', location='args', help="Period can be total, daily, weekly, or monthly")
+    parser.add_argument('count_periods', type=int, required=False, default=0, location='args', help="Number of days/weeks/months to include from current date backwards if > 0")
+    
+    # @jwt_required()
+    def get(self):
+        args = AppointmentServiceStatistics.parser.parse_args()
+        site_id = args['site_id']
+        period = args['period'].lower()
+        count_periods = args['count_periods']
+        
+        results = compute_appointment_statistics(site_id, period, count_periods, AppointmentModel.service_id)
+
+        # Format results
+        if period == 'total' and isinstance(results, dict):
+            stats = results
+        elif period == 'daily':
+            stats = [{
+                "service_id": r.service_id,
+                "day": r.day.strftime('%Y-%m-%d'),
+                "total": r.total
+            } for r in results]
+        elif period == 'weekly':
+            stats = [{
+                "service_id": r.service_id,
+                "week_start": r.week_start.strftime('%Y-%m-%d'),
+                "total": r.total
+            } for r in results]
+        elif period == 'monthly':
+            stats = [{
+                "service_id": r.service_id,
+                "year": int(r.year),
+                "month": int(r.month),
+                "total": r.total
+            } for r in results]
+        else:
+            return {"message": "Invalid period parameter. Use total, daily, weekly or monthly"}, 400
+
+        return {
+            "site_id": site_id,
+            "period": period,
+            "count_periods": count_periods,
+            "statistics": stats
+        }, 200

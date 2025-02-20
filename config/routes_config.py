@@ -12,6 +12,8 @@ from routes.days_off_route import add_resources as add_days_off_resources
 from routes.seasonal_schedule_route import add_resources as add_seasonal_schedule_resources
 from routes.appointment_route import add_resources as add_appointment_resources
 from routes.manager_route import add_resources as add_manager_resources
+from routes.payment_route import add_resources as add_payment_resources
+from routes.notification_route import add_resources as add_notification_resources
 
 def start_routes(api):
     add_auth_resources(api)
@@ -28,3 +30,5 @@ def start_routes(api):
     add_appointment_resources(api)
     add_user_resources(api)
     add_manager_resources(api)
+    add_payment_resources(api)
+    add_notification_resources(api)
