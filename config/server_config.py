@@ -36,6 +36,11 @@ def create_app():
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
     app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=15)
 
+    # Configuración de Wompi
+    # app.config["WOMPI_PUBLIC_KEY"] = os.environ["WOMPI_PUBLIC_KEY"]
+    # app.config["WOMPI_PRIVATE_KEY"] = os.environ["WOMPI_PRIVATE_KEY"]
+    # app.config["WOMPI_URL"] = os.environ["WOMPI_URL"]
+
     # Start the Flask-JWT-Extended and the Flask-ReSTful extension
     jwt = JWTManager(app)
     api = Api(app)
