@@ -9,24 +9,34 @@ class ManagerModel(db.Model):
     bankaccount = db.Column("bankaccount", db.BigInteger, nullable=False)
     accounttype = db.Column("accounttype", db.String(45), nullable=False)
     bankentity = db.Column("bankentity", db.String(45), nullable=False)
-    subscriptionactive = db.Column("subscriptionactive", db.Boolean, nullable=False, default=True)
+    subscriptionactive = db.Column("subscriptionactive", db.Boolean, nullable=False, default=False)
+    subscriptionstartdate = db.Column("subscriptionstartdate", db.DateTime(timezone=True))
+    subscriptiontype = db.Column("subscriptiontype", db.String(45))
+    subscriptionfinishdate = db.Column("subscriptionfinishdate", db.DateTime(timezone=True))
     
     # Relationship
     user = relationship("UserModel", back_populates="manager")
     
-    def __init__(self, bankaccount, accounttype, bankentity, userModel):
+    def __init__(self, bankaccount, accounttype, bankentity, userModel, 
+                 subscriptiontype=None, subscriptionstartdate=None, subscriptionfinishdate=None):
         self.id = userModel.id  # Asignar el ID del usuario
         self.bankaccount = bankaccount
         self.accounttype = accounttype
         self.bankentity = bankentity
+        self.subscriptiontype = subscriptiontype
+        self.subscriptionstartdate = subscriptionstartdate
+        self.subscriptionfinishdate = subscriptionfinishdate
 
     def json(self):
         return {
-            "id": self.id,  # Ahora id es el mismo que user_id
+            "id": self.id,
             "bankaccount": self.bankaccount,
             "accounttype": self.accounttype,
             "bankentity": self.bankentity,
-            "subscriptionactive": self.subscriptionactive
+            "subscriptionactive": self.subscriptionactive,
+            "subscriptionstartdate": str(self.subscriptionstartdate) if self.subscriptionstartdate else None,
+            "subscriptiontype": self.subscriptiontype,
+            "subscriptionfinishdate": str(self.subscriptionfinishdate) if self.subscriptionfinishdate else None
         }
          
     @classmethod

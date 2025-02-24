@@ -8,6 +8,7 @@ from flask_jwt_extended import (
     get_jwt,
 )
 from config.db_config import db
+from datetime import datetime
 
 class Subscription(Resource):
     parser = reqparse.RequestParser()
@@ -16,6 +17,24 @@ class Subscription(Resource):
         type=bool,
         required=True,
         help="Subscription status is required."
+    )
+    parser.add_argument(
+        "subscriptionstartdate",
+        type=str,
+        required=False,
+        help="Start date of the subscription (format: YYYY-MM-DDThh:mm:ss)"
+    )
+    parser.add_argument(
+        "subscriptiontype",
+        type=str,
+        required=False,
+        help="Type of subscription"
+    )
+    parser.add_argument(
+        "subscriptionfinishdate",
+        type=str,
+        required=False,
+        help="End date of the subscription (format: YYYY-MM-DDThh:mm:ss)"
     )
 
     # @jwt_required()
@@ -26,7 +45,10 @@ class Subscription(Resource):
         
         return {
             "id": manager.id,
-            "subscriptionactive": manager.subscriptionactive
+            "subscriptionactive": manager.subscriptionactive,
+            "subscriptionstartdate": manager.subscriptionstartdate.isoformat() if manager.subscriptionstartdate else None,
+            "subscriptiontype": manager.subscriptiontype,
+            "subscriptionfinishdate": manager.subscriptionfinishdate.isoformat() if manager.subscriptionfinishdate else None
         }, 200
 
     # @jwt_required()
@@ -40,6 +62,18 @@ class Subscription(Resource):
         try:
             with db.session.begin_nested():
                 manager.subscriptionactive = data["subscriptionactive"]
+                
+                # Actualizar fechas si se proporcionan
+                if data["subscriptionstartdate"]:
+                    manager.subscriptionstartdate = datetime.fromisoformat(data["subscriptionstartdate"])
+                
+                if data["subscriptionfinishdate"]:
+                    manager.subscriptionfinishdate = datetime.fromisoformat(data["subscriptionfinishdate"])
+                
+                # Actualizar tipo de suscripción si se proporciona
+                if data["subscriptiontype"]:
+                    manager.subscriptiontype = data["subscriptiontype"]
+                
                 db.session.add(manager)
             
             db.session.commit()
@@ -48,6 +82,8 @@ class Subscription(Resource):
                 "manager": manager.json()
             }, 200
             
+        except ValueError as e:
+            return {"message": "Invalid date format. Use ISO format (YYYY-MM-DDThh:mm:ss)"}, 400
         except Exception as e:
             db.session.rollback()
             return {"message": f"An error occurred updating the subscription: {str(e)}"}, 500

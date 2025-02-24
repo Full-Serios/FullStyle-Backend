@@ -1,4 +1,5 @@
 from models.user_model import UserModel
+from models.client_model import ClientModel  
 from models.manager_model import ManagerModel
 from datetime import datetime, timezone
 from flask_restful import Resource, reqparse
@@ -117,6 +118,10 @@ class RegisterGoogle(Resource):
                 password=None
             )
             new_user.save_to_db()
+
+            # Crear nuevo cliente asociado al usuario
+            new_client = ClientModel(id=new_user.id)
+            new_client.save_to_db()
 
             access_token = create_access_token(identity=str(new_user.id))
             refresh_token = create_refresh_token(identity=str(new_user.id))
@@ -245,7 +250,8 @@ class UserRegister(Resource):
 
     def post(self):
         data = UserRegister.parser.parse_args()
-
+        data["email"] = data["email"].lower()
+        
         existing_user = UserModel.query.filter_by(
             email=data["email"], active=True
         ).one_or_none()
@@ -267,15 +273,25 @@ class UserRegister(Resource):
                 email=data["email"], active=False
             ).one_or_none()
             user.recover_user()
+            existing_client = ClientModel.find_by_id(user.id)
+            if not existing_client:
+                new_client = ClientModel(id=user.id)
+                new_client.save_to_db()
+               
             return user.json(), 201
 
         if data["password"] == "" or len(data["password"]) < 8:
             return {"message": "Password must be at least 8 characters"}, 400
 
-        user = UserModel(**data)
-        user.password = generate_password_hash(data["password"], method="pbkdf2")
         try:
+            user = UserModel(**data)
+            user.password = generate_password_hash(data["password"], method="pbkdf2")
             user.save_to_db()
+            
+            # Crear nuevo cliente
+            new_client = ClientModel(id=user.id)
+            new_client.save_to_db()
+
             access_token = create_access_token(identity=str(user.id))
             refresh_token = create_refresh_token(identity=str(user.id))
             return {
@@ -348,7 +364,7 @@ class ManagerRegister(Resource):
                 # Create user first
                 user_data = {
                     "name": data["name"],
-                    "email": data["email"],
+                    "email": data["email"].lower(),
                     "password": generate_password_hash(data["password"], method="pbkdf2")
                 }
                 user = UserModel(**user_data)
@@ -399,7 +415,7 @@ class UserLogin(Resource):
 
     def post(self):
         data = UserLogin.parser.parse_args()
-        email = data["email"]
+        email = data["email"].lower() if data["email"] else None  # Convertir email a minúsculas
         name = data["name"]
         password = data["password"]
 
@@ -415,12 +431,12 @@ class UserLogin(Resource):
             return {"message": "Invalid credentials"}, 401
 
         user = user_email if user_email is not None else user_name
+
         if not user or not user.check_password(password):
             return {"message": "Invalid credentials"}, 401
 
         # Usar el método is_manager que implementamos
         is_manager_role = UserModel.is_manager(user.id)
-
         access_token = create_access_token(identity=str(user.id))
         refresh_token = create_refresh_token(identity=str(user.id))
 
