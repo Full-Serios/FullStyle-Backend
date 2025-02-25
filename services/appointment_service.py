@@ -1,4 +1,7 @@
 from models.appointment_model import AppointmentModel
+from models.site_model import SiteModel
+from models.detail_model import DetailModel
+from models.service_model import ServiceModel
 from flask_restful import Resource, reqparse, request
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -138,6 +141,78 @@ class Appointment(Resource):
                 return {"message": f"An error occurred deleting the appointment: {str(e)}"}, 500
             return {"message": "Appointment deleted"}, 200
         return {"message": "Appointment not found"}, 404
+
+class AppointmentDetail(Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('id', type=int, required=False)
+    parser.add_argument('appointmenttime', type=str, required=True, help="This field cannot be left blank!")
+    parser.add_argument('status', type=str, required=False, default='pending')
+    parser.add_argument('worker_id', type=int, required=True, help="This field cannot be left blank!")
+    parser.add_argument('site_id', type=int, required=True, help="This field cannot be left blank!")
+    parser.add_argument('service_id', type=int, required=True, help="This field cannot be left blank!")
+    parser.add_argument('client_id', type=int, required=True, help="This field cannot be left blank!")
+
+    # @jwt_required()
+    def get(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('id', type=int, location='args', required=False)
+        parser.add_argument('status', type=str, location='args', required=False)
+        parser.add_argument('worker_id', type=int, location='args', required=False)
+        parser.add_argument('site_id', type=int, location='args', required=False)
+        parser.add_argument('service_id', type=int, location='args', required=False)
+        parser.add_argument('client_id', type=int, location='args', required=False)
+        args = parser.parse_args()
+
+        query = AppointmentModel.query
+
+        if args['id']:
+            query = query.filter_by(id=args['id'])
+        if args['status']:
+            query = query.filter_by(status=args['status'])
+        if args['worker_id']:
+            query = query.filter_by(worker_id=args['worker_id'])
+        if args['site_id']:
+            query = query.filter_by(site_id=args['site_id'])
+        if args['service_id']:
+            query = query.filter_by(service_id=args['service_id'])
+        if args['client_id']:
+            query = query.filter_by(client_id=args['client_id'])
+
+        appointments = query.all()
+
+        if not appointments:
+            return {"message": "Appointment not found"}, 404
+
+        appointments_json = []
+        for appt in appointments:
+            # Start with the appointment data
+            data = appt.json()
+            # Save the id values before removing them
+            worker_id = data.get("worker_id")
+            site_id   = data.get("site_id")
+            service_id = data.get("service_id")
+            data.pop("worker_id", None)
+            data.pop("site_id", None)
+            data.pop("service_id", None)
+
+            # Expand worker attributes using the relationship
+            data["worker"] = appt.worker.json() if appt.worker else {}
+
+            # Query for the site information
+            site = SiteModel.query.filter_by(id=site_id).first()
+            data["site"] = site.json() if site and hasattr(site, "json") else {}
+
+            # Query for the service information
+            detail = DetailModel.query.filter_by(site_id=site_id, service_id=service_id).first()
+            service_data = detail.json() if detail and hasattr(detail, "json") else {}
+            service = ServiceModel.find_by_id(service_id)
+            if service:
+                service_data = {"name": service.name, **service_data}
+            data["service"] = service_data
+
+            appointments_json.append(data)
+
+        return appointments_json, 200
 
 # How many appointments have been made with an specific worker in a site
 class AppointmentWorkerStatistics(Resource):
