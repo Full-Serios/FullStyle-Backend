@@ -22,6 +22,7 @@ class Appointment(Resource):
     parser.add_argument('site_id', type=int, required=True, help="This field cannot be left blank!")
     parser.add_argument('service_id', type=int, required=True, help="This field cannot be left blank!")
     parser.add_argument('client_id', type=int, required=True, help="This field cannot be left blank!")
+    parser.add_argument('request', type=int, required=False, default=False)
 
     # @jwt_required()
     def get(self):
@@ -71,6 +72,9 @@ class Appointment(Resource):
         available, message = is_worker_available(data['worker_id'], appointmenttime.date(), appointmenttime.time(), data['service_id'])
         if not available:
             return {"message": message}, 400
+
+        if data['request']: 
+            return True, 200
 
         appointment = AppointmentModel(
             appointmenttime=appointmenttime,
