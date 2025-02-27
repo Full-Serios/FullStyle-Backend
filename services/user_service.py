@@ -1,4 +1,5 @@
 from models.user_model import UserModel
+from models.client_model import ClientModel  
 from models.manager_model import ManagerModel
 from datetime import datetime, timezone
 from flask_restful import Resource, reqparse
@@ -118,6 +119,10 @@ class RegisterGoogle(Resource):
             )
             new_user.save_to_db()
 
+            # Crear nuevo cliente asociado al usuario
+            new_client = ClientModel(id=new_user.id)
+            new_client.save_to_db()
+
             access_token = create_access_token(identity=str(new_user.id))
             refresh_token = create_refresh_token(identity=str(new_user.id))
 
@@ -146,35 +151,27 @@ class LoginGoogle(Resource):
     parser.add_argument(
         "token", type=str, required=True, help="Google token is required."
     )
-
     def post(self):
         data = LoginGoogle.parser.parse_args()
-
         if not data:
             return {"error": "No data provided"}, 400
-
         email = data["email"]
         token = data["token"]
-
         try:
             # Verificar el token de Google
             GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
-
             idinfo = id_token.verify_oauth2_token(
                 token,
                 requests.Request(),
                 GOOGLE_CLIENT_ID
             )
-
             # Verificar que el email del token coincide con el proporcionado
             if idinfo['email'] != email:
                 return {"error": "Email verification failed"}, 401
-
             # Verifica si el usuario ya existe
             existing_user = UserModel.query.filter_by(
                 email=email, active=True
             ).one_or_none()
-
             if not existing_user:
                 new_user = UserModel(
                     email=idinfo["email"],
@@ -184,45 +181,48 @@ class LoginGoogle(Resource):
                     google_id=idinfo["sub"]
                 )
                 new_user.save_to_db()
-
                 access_token = create_access_token(identity=str(new_user.id))
                 refresh_token = create_refresh_token(identity=str(new_user.id))
-
                 response = make_response({
                     "message": "User created and logged in successfully.",
                     "user": new_user.json(),
                     "access_token": access_token,
                     "refresh_token": refresh_token,
+                    "manager": False,
+                    "subscription_active": None
                 })
                 return response
-
             if existing_user.password and existing_user.auth_provider == "credentials":
                 # save google id to user
                 existing_user.google_id = idinfo["sub"]
                 existing_user.auth_provider += "-google"
                 existing_user.save_to_db()
-
+                
             is_manager_role = UserModel.is_manager(existing_user.id)
-
+            
+            # Obtener el estado de subscripción si es manager
+            subscription_active = False
+            if is_manager_role:
+                manager = ManagerModel.find_by_id(existing_user.id)
+                if manager:
+                    subscription_active = manager.subscriptionactive
+                    
             # Crear tokens JWT
             access_token = create_access_token(identity=str(existing_user.id))
             refresh_token = create_refresh_token(identity=str(existing_user.id))
-
             # Crear la respuesta y establecer las cookies
             response = make_response({
                 "message": "User login successfully.",
                 "user": existing_user.json(),
                 "access_token": access_token,
                 "refresh_token": refresh_token,
-                "manager": is_manager_role
+                "manager": is_manager_role,
+                "subscription_active": subscription_active if is_manager_role else None
             })
             return response
-
         except ValueError:
             # Token inválido
             print(f"Invalid token: {token}")
-
-
             return {"error": "Invalid token"}, 401
         except Exception as e:
             # Logea la excepción para depurar
@@ -245,7 +245,8 @@ class UserRegister(Resource):
 
     def post(self):
         data = UserRegister.parser.parse_args()
-
+        data["email"] = data["email"].lower()
+        
         existing_user = UserModel.query.filter_by(
             email=data["email"], active=True
         ).one_or_none()
@@ -267,15 +268,25 @@ class UserRegister(Resource):
                 email=data["email"], active=False
             ).one_or_none()
             user.recover_user()
+            existing_client = ClientModel.find_by_id(user.id)
+            if not existing_client:
+                new_client = ClientModel(id=user.id)
+                new_client.save_to_db()
+               
             return user.json(), 201
 
         if data["password"] == "" or len(data["password"]) < 8:
             return {"message": "Password must be at least 8 characters"}, 400
 
-        user = UserModel(**data)
-        user.password = generate_password_hash(data["password"], method="pbkdf2")
         try:
+            user = UserModel(**data)
+            user.password = generate_password_hash(data["password"], method="pbkdf2")
             user.save_to_db()
+            
+            # Crear nuevo cliente
+            new_client = ClientModel(id=user.id)
+            new_client.save_to_db()
+
             access_token = create_access_token(identity=str(user.id))
             refresh_token = create_refresh_token(identity=str(user.id))
             return {
@@ -348,7 +359,7 @@ class ManagerRegister(Resource):
                 # Create user first
                 user_data = {
                     "name": data["name"],
-                    "email": data["email"],
+                    "email": data["email"].lower(),
                     "password": generate_password_hash(data["password"], method="pbkdf2")
                 }
                 user = UserModel(**user_data)
@@ -399,7 +410,7 @@ class UserLogin(Resource):
 
     def post(self):
         data = UserLogin.parser.parse_args()
-        email = data["email"]
+        email = data["email"].lower() if data["email"] else None  # Convertir email a minúsculas
         name = data["name"]
         password = data["password"]
 
@@ -415,12 +426,20 @@ class UserLogin(Resource):
             return {"message": "Invalid credentials"}, 401
 
         user = user_email if user_email is not None else user_name
+
         if not user or not user.check_password(password):
             return {"message": "Invalid credentials"}, 401
 
         # Usar el método is_manager que implementamos
         is_manager_role = UserModel.is_manager(user.id)
-
+        
+        # Obtener el estado de subscripción si es manager
+        subscription_active = False
+        if is_manager_role:
+            manager = ManagerModel.find_by_id(user.id)
+            if manager:
+                subscription_active = manager.subscriptionactive
+        
         access_token = create_access_token(identity=str(user.id))
         refresh_token = create_refresh_token(identity=str(user.id))
 
@@ -429,6 +448,7 @@ class UserLogin(Resource):
             "access_token": access_token,
             "refresh_token": refresh_token,
             "manager": is_manager_role,
+            "subscription_active": subscription_active if is_manager_role else None
         }, 200
 
 
