@@ -7,6 +7,7 @@ from utils.helpers import (
     check_manager_exists,
     check_phone
 )
+from flask_jwt_extended import jwt_required
 
 class Site(Resource):
     parser = reqparse.RequestParser()

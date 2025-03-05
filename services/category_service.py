@@ -1,6 +1,6 @@
 from models.category_model import CategoryModel
 from flask_restful import Resource, reqparse
-
+from flask_jwt_extended import jwt_required
 class Category(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('name', type=str, required=True, help="This field cannot be left blank!")

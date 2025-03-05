@@ -7,7 +7,7 @@ from utils.helpers import (
     check_worker_active,
     check_seasonal_schedule_exists
 )
-
+from flask_jwt_extended import jwt_required
 class SeasonalSchedule(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('id', type=int, required=False)

@@ -13,6 +13,7 @@ from utils.helpers import (
     compute_daily_schedule
 )
 from datetime import datetime, timedelta
+from flask_jwt_extended import jwt_required
 
 class Worker(Resource):
     parser = reqparse.RequestParser()

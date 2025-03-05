@@ -5,7 +5,7 @@ from utils.helpers import (
     check_category_exists,
     check_service_unique
 )
-
+from flask_jwt_extended import jwt_required
 class Service(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('id', type=int, required=False)
