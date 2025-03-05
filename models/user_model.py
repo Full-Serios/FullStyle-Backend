@@ -19,7 +19,7 @@ class UserModel(db.Model):
     active = db.Column("active", db.Boolean, nullable=False, default=True)
     auth_provider = db.Column("auth_provider", db.String(20), nullable=False, default='credentials')
     google_id = db.Column("google_id", db.String(100), unique=True, nullable=True)
-    #otp_secret = db.Column("otp_secret", db.String(16), nullable=True)  # Secreto OTP opcional
+    otp_secret = db.Column("otp_secret", db.String(16), nullable=True)  # Secreto OTP opcional
 
     manager = relationship("ManagerModel", back_populates="user", uselist=False)
 
