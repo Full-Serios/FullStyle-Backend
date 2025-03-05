@@ -14,7 +14,7 @@ from routes.appointment_route import add_resources as add_appointment_resources
 from routes.manager_route import add_resources as add_manager_resources
 from routes.payment_route import add_resources as add_payment_resources
 from routes.notification_route import add_resources as add_notification_resources
-
+from routes.log_route import add_resources as add_log_resources
 def start_routes(api):
     add_auth_resources(api)
     add_service_resources(api)
@@ -32,3 +32,4 @@ def start_routes(api):
     add_manager_resources(api)
     add_payment_resources(api)
     add_notification_resources(api)
+    add_log_resources(api)
