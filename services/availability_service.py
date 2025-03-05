@@ -6,7 +6,7 @@ from utils.helpers import (
     check_availability_exists,
     check_overlapping_availability
 )
-
+from flask_jwt_extended import jwt_required
 class Availability(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('id', type=int, required=False)

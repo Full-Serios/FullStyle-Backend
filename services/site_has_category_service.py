@@ -5,7 +5,7 @@ from utils.helpers import (
     check_category_exists,
     check_site_category_exists
 )
-
+from flask_jwt_extended import jwt_required
 class SiteHasCategory(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('site_id', type=int, required=True, help="This field cannot be left blank!")

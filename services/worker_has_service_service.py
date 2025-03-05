@@ -5,6 +5,7 @@ from utils.helpers import (
     check_service_allowed_for_site,
     check_worker_service_exists
 )
+from flask_jwt_extended import jwt_required
 
 class WorkerHasService(Resource):
     parser = reqparse.RequestParser()

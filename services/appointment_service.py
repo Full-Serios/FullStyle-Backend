@@ -12,7 +12,7 @@ from utils.helpers import (
     is_worker_available,
     compute_appointment_statistics
 )
-
+from flask_jwt_extended import jwt_required
 class Appointment(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('id', type=int, required=False)

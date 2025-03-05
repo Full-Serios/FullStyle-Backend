@@ -2,7 +2,7 @@ from models.payment_model import PaymentModel
 from models.appointment_model import AppointmentModel
 from flask_restful import Resource, reqparse, request
 from utils.helpers import check_appointment_exists, compute_payment_statistics
-
+from flask_jwt_extended import jwt_required
 class Payment(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('id', type=int, required=False)
