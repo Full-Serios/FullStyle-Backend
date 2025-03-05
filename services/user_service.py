@@ -38,7 +38,7 @@ class User(Resource):
         "password", type=str, required=True, help="This field cannot be blank."
     )
 
-    # @jwt_required()
+    @jwt_required()
     def get(self, id):
         user = UserModel.find_by_id(id)
 
@@ -46,12 +46,8 @@ class User(Resource):
             return user.json(), 200
         return {"message": "User not found"}, 404
 
-    # @jwt_required()
+    @jwt_required()
     def put(self, id):
-        # current_user = get_jwt_identity()
-        # if current_user["id"] != id:
-        #     return {"message": "Not found"}, 404
-
         data = User.parser.parse_args()
 
         if data["password"] == "" or len(data["password"]) < 8:

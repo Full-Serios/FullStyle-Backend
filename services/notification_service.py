@@ -10,7 +10,7 @@ class Notification(Resource):
     parser.add_argument('status', type=str, required=False, default='pending')
     parser.add_argument('appointment_id', type=int, required=True, help="This field cannot be left blank!")
 
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         parser = reqparse.RequestParser()
         parser.add_argument('id', type=int, location='args', required=False)
@@ -55,7 +55,7 @@ class Notification(Resource):
             return notifications_json, 200
         return {"message": "Notification not found"}, 404
 
-    # @jwt_required()
+    @jwt_required()
     def post(self):
         data = Notification.parser.parse_args()
 
@@ -74,7 +74,7 @@ class Notification(Resource):
             return {"message": f"An error occurred inserting the notification: {str(e)}"}, 500
         return notification.json(), 201
 
-    # @jwt_required()
+    @jwt_required()
     def put(self):
         data = Notification.parser.parse_args()
         notification_id = data['id']
@@ -99,7 +99,7 @@ class Notification(Resource):
             return {"message": f"An error occurred updating the notification: {str(e)}"}, 500
         return notification.json(), 200
 
-    # @jwt_required()
+    @jwt_required()
     def delete(self):
         notification_id = request.args.get('id')
         if not notification_id:

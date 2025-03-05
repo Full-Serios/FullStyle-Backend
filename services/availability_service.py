@@ -15,7 +15,7 @@ class Availability(Resource):
     parser.add_argument('starttime', type=str, required=True, help="This field cannot be left blank!")
     parser.add_argument('endtime', type=str, required=True, help="This field cannot be left blank!")
 
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         parser = reqparse.RequestParser()
         parser.add_argument('id', type=int, location='args', required=False)
@@ -41,7 +41,7 @@ class Availability(Resource):
             return availabilities_json, 200
         return {"message": "Availability not found"}, 404
 
-    # @jwt_required()
+    @jwt_required()
     def post(self):
         data = Availability.parser.parse_args()
 
@@ -65,7 +65,7 @@ class Availability(Resource):
 
         return availability.json(), 201
 
-    # @jwt_required()
+    @jwt_required()
     def put(self):
         data = Availability.parser.parse_args()
         availability_id = data['id']
@@ -100,7 +100,7 @@ class Availability(Resource):
 
         return availability.json(), 200
 
-    # @jwt_required()
+    @jwt_required()
     def delete(self):
         availability_id = request.args.get('id')
 

@@ -11,7 +11,7 @@ class SiteHasCategory(Resource):
     parser.add_argument('site_id', type=int, required=True, help="This field cannot be left blank!")
     parser.add_argument('category_id', type=int, required=True, help="This field cannot be left blank!")
 
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         site_categories = SiteHasCategoryModel.get_all_site_categories()
 
@@ -20,7 +20,7 @@ class SiteHasCategory(Resource):
             return site_categories_json, 200
         return {"message": "Site-Has-Category not found"}, 404
 
-    # @jwt_required()
+    @jwt_required()
     def post(self):
         data = SiteHasCategory.parser.parse_args()
 

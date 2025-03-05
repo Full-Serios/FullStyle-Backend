@@ -11,7 +11,7 @@ class WorkerHasService(Resource):
     parser.add_argument('worker_id', type=int, required=True, help="This field cannot be left blank!")
     parser.add_argument('service_id', type=int, required=True, help="This field cannot be left blank!")
 
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         worker_services = WorkerHasServiceModel.get_all_worker_services()
 
@@ -20,7 +20,7 @@ class WorkerHasService(Resource):
             return worker_services_json, 200
         return {"message": "Worker-Has-Service not found"}, 404
 
-    # @jwt_required()
+    @jwt_required()
     def post(self):
         data = WorkerHasService.parser.parse_args()
 

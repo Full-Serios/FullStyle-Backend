@@ -11,7 +11,7 @@ class Payment(Resource):
     parser.add_argument('status', type=str, required=False, default='pending')
     parser.add_argument('appointment_id', type=int, required=True, help="This field cannot be left blank!")
 
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         parser = reqparse.RequestParser()
         parser.add_argument('id', type=int, location='args', required=False)
@@ -59,7 +59,7 @@ class Payment(Resource):
             return payments_json, 200
         return {"message": "Payment not found"}, 404
 
-    # @jwt_required()
+    @jwt_required()
     def post(self):
         data = Payment.parser.parse_args()
         payment = PaymentModel(
@@ -72,14 +72,14 @@ class Payment(Resource):
         _, error = check_appointment_exists(data['appointment_id'])
         if error:
             return {"message": error}, 404
-        
+
         try:
             payment.save_to_db()
         except Exception as e:
             return {"message": f"An error occurred inserting the payment: {str(e)}"}, 500
         return payment.json(), 201
 
-    # @jwt_required()
+    @jwt_required()
     def put(self):
         data = Payment.parser.parse_args()
         payment_id = data['id']
@@ -89,7 +89,7 @@ class Payment(Resource):
         payment = PaymentModel.find_by_id(payment_id)
         if not payment:
             return {"message": "Payment not found"}, 404
-        
+
         appointment_id = payment.appointment_id
         _, error = check_appointment_exists(appointment_id)
         if error:
@@ -106,7 +106,7 @@ class Payment(Resource):
             return {"message": f"An error occurred updating the payment: {str(e)}"}, 500
         return payment.json(), 200
 
-    # @jwt_required()
+    @jwt_required()
     def delete(self):
         payment_id = request.args.get('id')
         if not payment_id:
@@ -115,7 +115,7 @@ class Payment(Resource):
         payment = PaymentModel.find_by_id(payment_id)
         if not payment:
             return {"message": "Payment not found"}, 404
-        
+
         appointment_id = payment.appointment_id
         _, error = check_appointment_exists(appointment_id)
         if error:
@@ -133,14 +133,14 @@ class PaymentWorkerStatistics(Resource):
     parser.add_argument('site_id', type=int, required=True, location='args', help="site_id is required")
     parser.add_argument('period', type=str, required=False, default='total', location='args', help="Period can be total, daily, weekly, or monthly")
     parser.add_argument('count_periods', type=int, required=False, default=0, location='args', help="Number of days/weeks/months to include from current date backwards if > 0")
-    
-    # @jwt_required()
+
+    @jwt_required()
     def get(self):
         args = PaymentWorkerStatistics.parser.parse_args()
         site_id = args['site_id']
         period = args['period'].lower()
         count_periods = args['count_periods']
-        
+
         results = compute_payment_statistics(site_id, period, count_periods, AppointmentModel.worker_id)
 
         # Format results
@@ -170,7 +170,7 @@ class PaymentWorkerStatistics(Resource):
             } for r in results]
         else:
             return {"message": "Invalid period parameter. Use total, daily, weekly or monthly"}, 400
-        
+
         return {
             "site_id": site_id,
             "period": period,
@@ -184,16 +184,16 @@ class PaymentSiteStatistics(Resource):
     parser.add_argument('site_id', type=int, required=True, location='args', help="site_id is required")
     parser.add_argument('period', type=str, required=False, default='total', location='args', help="Period can be total, daily, weekly, or monthly")
     parser.add_argument('count_periods', type=int, required=False, default=0, location='args', help="Number of days/weeks/months to include from current date backwards if > 0")
-    
-    # @jwt_required()
+
+    @jwt_required()
     def get(self):
         args = PaymentSiteStatistics.parser.parse_args()
         site_id = args['site_id']
         period = args['period'].lower()
         count_periods = args['count_periods']
-        
+
         results = compute_payment_statistics(site_id, period, count_periods, group_column=None)
-        
+
         # Format results
         if period == 'total' and isinstance(results, dict):
             stats = results
@@ -215,7 +215,7 @@ class PaymentSiteStatistics(Resource):
             } for r in results]
         else:
             return {"message": "Invalid period parameter. Use total, daily, weekly or monthly"}, 400
-        
+
         return {
             "site_id": site_id,
             "period": period,
@@ -231,16 +231,16 @@ class PaymentServiceStatistics(Resource):
                         help="Period can be total, daily, weekly, or monthly")
     parser.add_argument('count_periods', type=int, required=False, default=0, location='args',
                         help="Number of days/weeks/months to include from current date backwards if > 0")
-    
-    # @jwt_required()
+
+    @jwt_required()
     def get(self):
         args = PaymentServiceStatistics.parser.parse_args()
         site_id = args['site_id']
         period = args['period'].lower()
         count_periods = args['count_periods']
-        
+
         results = compute_payment_statistics(site_id, period, count_periods, AppointmentModel.service_id)
-        
+
         # Format results
         if period == 'total':
             stats = [{
@@ -268,7 +268,7 @@ class PaymentServiceStatistics(Resource):
             } for r in results]
         else:
             return {"message": "Invalid period parameter. Use total, daily, weekly or monthly"}, 400
-        
+
         return {
             "site_id": site_id,
             "period": period,

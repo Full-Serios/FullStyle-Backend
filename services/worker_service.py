@@ -22,7 +22,7 @@ class Worker(Resource):
     parser.add_argument('profilepicture', type=str, required=False)
     parser.add_argument('description', type=str, required=False)
 
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         parser = reqparse.RequestParser()
         parser.add_argument('id', type=int, location='args', required=False)
@@ -52,7 +52,7 @@ class Worker(Resource):
             return workers_json, 200
         return {"message": "Worker not found"}, 404
 
-    # @jwt_required()
+    @jwt_required()
     def post(self):
         data = Worker.parser.parse_args()
         worker = WorkerModel.query.filter_by(id=data['id']).first()
@@ -91,7 +91,7 @@ class Worker(Resource):
 
             return worker.json(), 201
 
-    # @jwt_required()
+    @jwt_required()
     def put(self):
         data = Worker.parser.parse_args()
         worker_id = data['id']
@@ -121,7 +121,7 @@ class Worker(Resource):
 
         return worker.json(), 200
 
-    # @jwt_required()
+    @jwt_required()
     def delete(self):
         worker_id = request.args.get('id')
 
@@ -137,13 +137,13 @@ class Worker(Resource):
         except Exception as e:
             return {"message": f"An error occurred deactivating the worker: {str(e)}"}, 500
         return {"message": "Worker deactivated"}, 200
-    
+
 class WorkerDailySchedule(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('worker_id', type=int, location='args', required=True, help="worker_id is required")
     parser.add_argument('date', type=str, location='args', required=True, help="date is required in 'YYYY-MM-DD' format")
 
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         args = WorkerDailySchedule.parser.parse_args()
         worker_id = args['worker_id']
@@ -161,8 +161,8 @@ class WorkerDailySchedule(Resource):
         schedule = compute_daily_schedule(worker, date)
 
         return {
-            "worker_id": worker_id, 
-            "date": str(date), 
+            "worker_id": worker_id,
+            "date": str(date),
             "schedule": schedule
         }, 200
 
@@ -171,7 +171,7 @@ class WorkerWeeklySchedule(Resource):
     parser.add_argument('worker_id', type=int, location='args', required=True, help="worker_id is required")
     parser.add_argument('date', type=str, location='args', required=True, help="date is required in 'YYYY-MM-DD' format")
 
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         args = WorkerWeeklySchedule.parser.parse_args()
         worker_id = args['worker_id']

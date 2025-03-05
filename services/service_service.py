@@ -12,7 +12,7 @@ class Service(Resource):
     parser.add_argument('category_id', type=int, required=True, help="This field cannot be left blank!")
     parser.add_argument('name', type=str, required=True, help="This field cannot be left blank!")
 
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         parser = reqparse.RequestParser()
         parser.add_argument('id', type=int, location='args', required=False)
@@ -38,7 +38,7 @@ class Service(Resource):
             return services_json, 200
         return {"message": "Service not found"}, 404
 
-    # @jwt_required()
+    @jwt_required()
     def post(self):
         data = Service.parser.parse_args()
 

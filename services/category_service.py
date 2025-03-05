@@ -5,7 +5,7 @@ class Category(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('name', type=str, required=True, help="This field cannot be left blank!")
 
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         categories = CategoryModel.get_all_categories()
 

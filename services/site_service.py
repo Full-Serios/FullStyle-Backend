@@ -19,7 +19,7 @@ class Site(Resource):
     parser.add_argument('service_id', type=int, required=False)
     parser.add_argument('photos', type=dict, required=False, help="This field must be a valid JSON object")
 
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         parser = reqparse.RequestParser()
         parser.add_argument('id', type=int, location='args', required=False)
@@ -59,7 +59,7 @@ class Site(Resource):
             return sites_json, 200
         return {"message": "Site not found"}, 404
 
-    # @jwt_required()
+    @jwt_required()
     def post(self):
         data = Site.parser.parse_args()
 
@@ -82,7 +82,7 @@ class Site(Resource):
 
         return site.json(), 201
 
-    # @jwt_required()
+    @jwt_required()
     def put(self):
         data = Site.parser.parse_args()
         site_id = request.args.get('id')
@@ -118,7 +118,7 @@ class Site(Resource):
 
         return site.json(), 200
 
-    # @jwt_required()
+    @jwt_required()
     def delete(self):
         site_id = request.args.get('id')
 
