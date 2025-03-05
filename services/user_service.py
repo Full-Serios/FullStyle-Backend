@@ -1,5 +1,6 @@
+from requests import request
 from models.user_model import UserModel
-from models.client_model import ClientModel  
+from models.client_model import ClientModel
 from models.manager_model import ManagerModel
 from datetime import datetime, timezone
 from flask_restful import Resource, reqparse
@@ -22,6 +23,8 @@ from google.oauth2 import id_token
 from google.auth.transport import requests
 import os
 from datetime import timedelta
+import pyotp
+from flask import current_app
 
 class User(Resource):
     parser = reqparse.RequestParser()
@@ -197,16 +200,16 @@ class LoginGoogle(Resource):
                 existing_user.google_id = idinfo["sub"]
                 existing_user.auth_provider += "-google"
                 existing_user.save_to_db()
-                
+
             is_manager_role = UserModel.is_manager(existing_user.id)
-            
+
             # Obtener el estado de subscripción si es manager
             subscription_active = False
             if is_manager_role:
                 manager = ManagerModel.find_by_id(existing_user.id)
                 if manager:
                     subscription_active = manager.subscriptionactive
-                    
+
             # Crear tokens JWT
             access_token = create_access_token(identity=str(existing_user.id))
             refresh_token = create_refresh_token(identity=str(existing_user.id))
@@ -246,7 +249,7 @@ class UserRegister(Resource):
     def post(self):
         data = UserRegister.parser.parse_args()
         data["email"] = data["email"].lower()
-        
+
         existing_user = UserModel.query.filter_by(
             email=data["email"], active=True
         ).one_or_none()
@@ -272,7 +275,7 @@ class UserRegister(Resource):
             if not existing_client:
                 new_client = ClientModel(id=user.id)
                 new_client.save_to_db()
-               
+
             return user.json(), 201
 
         if data["password"] == "" or len(data["password"]) < 8:
@@ -282,7 +285,7 @@ class UserRegister(Resource):
             user = UserModel(**data)
             user.password = generate_password_hash(data["password"], method="pbkdf2")
             user.save_to_db()
-            
+
             # Crear nuevo cliente
             new_client = ClientModel(id=user.id)
             new_client.save_to_db()
@@ -428,21 +431,23 @@ class UserLogin(Resource):
         user = user_email if user_email is not None else user_name
 
         if not user or not user.check_password(password):
+            current_app.logger.warning(f"Intento de login fallido - Email: {email} - Name: {name}")
             return {"message": "Invalid credentials"}, 401
 
         # Usar el método is_manager que implementamos
         is_manager_role = UserModel.is_manager(user.id)
-        
+
         # Obtener el estado de subscripción si es manager
         subscription_active = False
         if is_manager_role:
             manager = ManagerModel.find_by_id(user.id)
             if manager:
                 subscription_active = manager.subscriptionactive
-        
+
         access_token = create_access_token(identity=str(user.id))
         refresh_token = create_refresh_token(identity=str(user.id))
 
+        current_app.logger.info(f"Usuario logeado - Email: {email} - Name: {name}")
         return {
             "user": user.json(),
             "access_token": access_token,
@@ -478,6 +483,7 @@ class User2FA(Resource):
         if user is None:
             return {"message": "User not found"}, 404
 
+        current_app.logger.info(f"Usuario solicitó activar 2FA - Email: {user.email}")
         return {"uri": user.get_totp_uri()}, 200
 
 
@@ -506,7 +512,7 @@ class ResetPasswordRequest(Resource):
             reset_token = create_access_token(identity=str(user.id), expires_delta=timedelta(minutes=15))
 
             res = send_email.ResetPassword(email, user.name, reset_token)
-
+            current_app.logger.info(f"Usuario solicitó resetear contraseña - Email: {email}")
             return {"message": "A reset link has been sent to your email"}, 200
         except Exception as e:
             return {"message": f"Error: {str(e)}"}, 400
@@ -538,8 +544,62 @@ class ResetPasswordConfirm(Resource):
             if ("google" in user.auth_provider):
                 user.auth_provider = "credentials-google"
             user.save_to_db()
-
+            current_app.logger.info(f"Usuario reseteó su contraseña - Email: {user.email}")
             return {"message": "Password successfully reset"}, 200
 
         except Exception as e:
             return {"message": f"Error: {str(e)}"}, 400
+
+class Enable2FA(Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument("email", type=str, required=True, help="Email is required")
+
+    def post(self):
+        data = Enable2FA.parser.parse_args()
+        email = data["email"].lower()
+
+        user = UserModel.query.filter_by(email=email, active=True).first()
+
+        if not user:
+            return {"message": "User not found"}, 404
+
+        if user.otp_secret:
+            return {"message": "2FA is already enabled"}, 400
+
+        # Generar secreto OTP
+        otp_secret = pyotp.random_base32()
+        user.otp_secret = otp_secret
+        user.save_to_db()
+
+        current_app.logger.info(f"Usuario activó 2FA - Email: {user.email}")
+        return {
+            "secret": otp_secret,
+            "otpauth_url": pyotp.totp.TOTP(otp_secret).provisioning_uri(user.email, issuer_name="FullStyle")
+        }, 200
+
+
+class Verify2FA(Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument("email", type=str, required=True, help="Email is required")
+    parser.add_argument("otp", type=str, required=True, help="OTP code is required")
+
+    def post(self):
+        data = Verify2FA.parser.parse_args()
+        email = data["email"].lower()
+        otp_code = data["otp"]
+
+        user = UserModel.query.filter_by(email=email, active=True).first()
+
+        if not user:
+            return {"message": "User not found"}, 404
+
+        if not user.otp_secret:
+            return {"message": "2FA is not enabled for this user"}, 400
+
+        # Verificar OTP
+        if not pyotp.TOTP(user.otp_secret).verify(otp_code):
+            current_app.logger.warning(f"Usuario ingresó un código 2FA inválido - Email: {user.email}")
+            return {"message": "Invalid OTP code"}, 401
+
+        current_app.logger.info(f"Usuario verificó 2FA - Email: {user.email}")
+        return {"message": "2FA verified successfully"}, 200
