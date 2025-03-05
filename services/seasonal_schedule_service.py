@@ -18,7 +18,7 @@ class SeasonalSchedule(Resource):
     parser.add_argument('starttime', type=str, required=True, help="This field cannot be left blank!")
     parser.add_argument('endtime', type=str, required=True, help="This field cannot be left blank!")
 
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         parser = reqparse.RequestParser()
         parser.add_argument('id', type=int, location='args', required=False)
@@ -44,7 +44,7 @@ class SeasonalSchedule(Resource):
             return seasonal_schedules_json, 200
         return {"message": "Seasonal schedule not found"}, 404
 
-    # @jwt_required()
+    @jwt_required()
     def post(self):
         data = SeasonalSchedule.parser.parse_args()
 
@@ -90,7 +90,7 @@ class SeasonalSchedule(Resource):
 
         return seasonal_schedule.json(), 201
 
-    # @jwt_required()
+    @jwt_required()
     def put(self):
         data = SeasonalSchedule.parser.parse_args()
         seasonal_schedule_id = data['id']
@@ -142,7 +142,7 @@ class SeasonalSchedule(Resource):
 
         return seasonal_schedule.json(), 200
 
-    # @jwt_required()
+    @jwt_required()
     def delete(self):
         seasonal_schedule_id = request.args.get('id')
 

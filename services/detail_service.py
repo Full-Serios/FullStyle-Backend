@@ -20,7 +20,7 @@ class Detail(Resource):
     parser.add_argument('duration', type=int, required=True, help="This field cannot be left blank!")
     parser.add_argument('photos', type=dict, required=False, help="This field must be a valid JSON object")
 
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         parser = reqparse.RequestParser()
         parser.add_argument('site_id', type=int, location='args', required=False)
@@ -72,7 +72,7 @@ class Detail(Resource):
             return details_json, 200
         return {"message": "Detail not found"}, 404
 
-    # @jwt_required()
+    @jwt_required()
     def post(self):
         data = Detail.parser.parse_args()
 
@@ -118,7 +118,7 @@ class Detail(Resource):
 
             return detail.json(), 201
 
-    # @jwt_required()
+    @jwt_required()
     def put(self):
         data = Detail.parser.parse_args()
 
@@ -148,7 +148,7 @@ class Detail(Resource):
 
         return detail.json(), 200
 
-    # @jwt_required()
+    @jwt_required()
     def delete(self):
         site_id = request.args.get('site_id')
         service_id = request.args.get('service_id')

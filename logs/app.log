@@ -9,3 +9,8 @@
 2025-03-05 06:50:16,442 - INFO - Aplicación Flask iniciada y lista para recibir peticiones
 2025-03-05 06:50:25,327 - INFO - Aplicación Flask iniciada y lista para recibir peticiones
 2025-03-05 06:52:24,586 - INFO - Usuario verificó 2FA - Email: nicola@gmail.com
+2025-03-05 07:22:45,560 - INFO - Usuario solicitó resetear contraseña - Email: dieramirezma@unal.edu.co
+2025-03-05 07:24:53,210 - WARNING - Intento de login fallido - Email: dieramirezma@unal.edu.co - Name: None
+2025-03-05 07:25:08,169 - INFO - Usuario reseteó su contraseña - Email: dieramirezma@unal.edu.co
+2025-03-05 07:25:15,374 - INFO - Usuario logeado - Email: dieramirezma@unal.edu.co - Name: None
+2025-03-05 07:25:18,449 - INFO - Usuario activó 2FA - Email: dieramirezma@unal.edu.co

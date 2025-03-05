@@ -24,7 +24,7 @@ class Appointment(Resource):
     parser.add_argument('client_id', type=int, required=True, help="This field cannot be left blank!")
     parser.add_argument('request', type=int, required=False, default=False)
 
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         parser = reqparse.RequestParser()
         parser.add_argument('id', type=int, location='args', required=False)
@@ -62,7 +62,7 @@ class Appointment(Resource):
             return appointments_json, 200
         return {"message": "Appointment not found"}, 404
 
-    # @jwt_required()
+    @jwt_required()
     def post(self):
         data = Appointment.parser.parse_args()
         appointmenttime, error = check_appointment_time(data['appointmenttime'])
@@ -73,7 +73,7 @@ class Appointment(Resource):
         if not available:
             return {"message": message}, 400
 
-        if data['request']: 
+        if data['request']:
             return True, 200
 
         appointment = AppointmentModel(
@@ -91,7 +91,7 @@ class Appointment(Resource):
 
         return appointment.json(), 201
 
-    # @jwt_required()
+    @jwt_required()
     def put(self):
         data = Appointment.parser.parse_args()
         appointment_id = data['id']
@@ -127,13 +127,13 @@ class Appointment(Resource):
 
         return appointment.json(), 200
 
-    # @jwt_required()
+    @jwt_required()
     def delete(self):
         appointment_id = request.args.get('id')
 
         if not appointment_id:
             return {"message": "Appointment ID is required as a query parameter"}, 400
-        
+
         appointment, error = check_appointment_exists(appointment_id)
         if error:
             return {"message": error}, 404
@@ -156,7 +156,7 @@ class AppointmentDetail(Resource):
     parser.add_argument('service_id', type=int, required=True, help="This field cannot be left blank!")
     parser.add_argument('client_id', type=int, required=True, help="This field cannot be left blank!")
 
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         parser = reqparse.RequestParser()
         parser.add_argument('id', type=int, location='args', required=False)
@@ -224,20 +224,20 @@ class AppointmentWorkerStatistics(Resource):
     parser.add_argument('site_id', type=int, required=True, location='args', help="site_id is required")
     parser.add_argument('period', type=str, required=False, default='total', location='args', help="Period can be total, daily, weekly, monthly")
     parser.add_argument('count_periods', type=int, required=False, default=0, location='args', help="Number of days/weeks/months to include from current date backwards if > 0")
-    
-    # @jwt_required()
+
+    @jwt_required()
     def get(self):
         args = AppointmentWorkerStatistics.parser.parse_args()
         site_id = args['site_id']
         period = args['period'].lower()
         count_periods = args['count_periods']
-        
+
         results = compute_appointment_statistics(site_id, period, count_periods, AppointmentModel.worker_id)
-        
+
         # Format results
         stats = []
         if period == 'total' and type(results) is dict:
-            stats = results 
+            stats = results
         else:
             for item in results:
                 record = {"worker_id": item.worker_id, "total": item.total}
@@ -249,7 +249,7 @@ class AppointmentWorkerStatistics(Resource):
                     record["year"] = int(item.year)
                     record["month"] = int(item.month)
                 stats.append(record)
-                
+
         return {
             "site_id": site_id,
             "period": period,
@@ -264,7 +264,7 @@ class AppointmentSiteStatistics(Resource):
     parser.add_argument('period', type=str, required=False, default='total', location='args', help="Period can be total, daily, weekly, or monthly")
     parser.add_argument('count_periods', type=int, required=False, default=0, location='args', help="Number of days/weeks/months to include from current date backwards if > 0")
 
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         args = AppointmentSiteStatistics.parser.parse_args()
         site_id = args['site_id']
@@ -298,14 +298,14 @@ class AppointmentServiceStatistics(Resource):
     parser.add_argument('site_id', type=int, required=True, location='args', help="site_id is required")
     parser.add_argument('period', type=str, required=False, default='total', location='args', help="Period can be total, daily, weekly, or monthly")
     parser.add_argument('count_periods', type=int, required=False, default=0, location='args', help="Number of days/weeks/months to include from current date backwards if > 0")
-    
-    # @jwt_required()
+
+    @jwt_required()
     def get(self):
         args = AppointmentServiceStatistics.parser.parse_args()
         site_id = args['site_id']
         period = args['period'].lower()
         count_periods = args['count_periods']
-        
+
         results = compute_appointment_statistics(site_id, period, count_periods, AppointmentModel.service_id)
 
         # Format results

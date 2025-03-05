@@ -37,12 +37,12 @@ class Subscription(Resource):
         help="End date of the subscription (format: YYYY-MM-DDThh:mm:ss)"
     )
 
-    # @jwt_required()
+    @jwt_required()
     def get(self, id):
         manager = ManagerModel.find_by_id(id)
         if not manager:
             return {"message": "Manager not found"}, 404
-        
+
         return {
             "id": manager.id,
             "subscriptionactive": manager.subscriptionactive,
@@ -51,37 +51,37 @@ class Subscription(Resource):
             "subscriptionfinishdate": manager.subscriptionfinishdate.isoformat() if manager.subscriptionfinishdate else None
         }, 200
 
-    # @jwt_required()
+    @jwt_required()
     def put(self, id):
         data = Subscription.parser.parse_args()
         manager = ManagerModel.find_by_id(id)
-        
+
         if not manager:
             return {"message": "Manager not found"}, 404
 
         try:
             with db.session.begin_nested():
                 manager.subscriptionactive = data["subscriptionactive"]
-                
+
                 # Actualizar fechas si se proporcionan
                 if data["subscriptionstartdate"]:
                     manager.subscriptionstartdate = datetime.fromisoformat(data["subscriptionstartdate"])
-                
+
                 if data["subscriptionfinishdate"]:
                     manager.subscriptionfinishdate = datetime.fromisoformat(data["subscriptionfinishdate"])
-                
+
                 # Actualizar tipo de suscripción si se proporciona
                 if data["subscriptiontype"]:
                     manager.subscriptiontype = data["subscriptiontype"]
-                
+
                 db.session.add(manager)
-            
+
             db.session.commit()
-            
+
             return {
                 "manager": manager.json()
             }, 200
-            
+
         except ValueError as e:
             return {"message": "Invalid date format. Use ISO format (YYYY-MM-DDThh:mm:ss)"}, 400
         except Exception as e:

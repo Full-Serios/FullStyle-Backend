@@ -13,7 +13,7 @@ class DaysOff(Resource):
     parser.add_argument('worker_id', type=int, required=True, help="This field cannot be left blank!")
     parser.add_argument('dayoff', type=str, required=True, help="This field cannot be left blank!")
 
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         parser = reqparse.RequestParser()
         parser.add_argument('id', type=int, location='args', required=False)
@@ -39,7 +39,7 @@ class DaysOff(Resource):
             return days_off_json, 200
         return {"message": "Days off not found"}, 404
 
-    # @jwt_required()
+    @jwt_required()
     def post(self):
         data = DaysOff.parser.parse_args()
 
@@ -66,7 +66,7 @@ class DaysOff(Resource):
 
         return dayoff.json(), 201
 
-    # @jwt_required()
+    @jwt_required()
     def put(self):
         data = DaysOff.parser.parse_args()
         days_off_id = data['id']
@@ -103,7 +103,7 @@ class DaysOff(Resource):
 
         return dayoff.json(), 200
 
-    # @jwt_required()
+    @jwt_required()
     def delete(self):
         days_off_id = request.args.get('id')
 
