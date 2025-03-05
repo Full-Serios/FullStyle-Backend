@@ -8,7 +8,6 @@ from onetimepass import valid_totp
 import utils.encryption as encryption
 from sqlalchemy.orm import relationship
 
-
 class UserModel(db.Model):
     __tablename__ = "userr"
 
@@ -20,18 +19,17 @@ class UserModel(db.Model):
     active = db.Column("active", db.Boolean, nullable=False, default=True)
     auth_provider = db.Column("auth_provider", db.String(20), nullable=False, default='credentials')
     google_id = db.Column("google_id", db.String(100), unique=True, nullable=True)
-    # otp_secret = db.Column("otp_secret", db.String(16), nullable=False)
+    otp_secret = db.Column("otp_secret", db.String(16), nullable=True)  # Secreto OTP opcional
 
     manager = relationship("ManagerModel", back_populates="user", uselist=False)
 
-    # Methods
+    # Constructor
     def __init__(self, email, name, password, auth_provider='credentials', google_id=None):
         self.email = email
         self.name = name
         self.password = password
         self.auth_provider = auth_provider
         self.google_id = google_id
-        # self.otp_secret = b32encode(urandom(10)).decode("utf-8")
 
     def json(self):
         return {
@@ -43,18 +41,8 @@ class UserModel(db.Model):
             "google_id": self.google_id
         }
 
-    @classmethod
-    def get_all_users(cls):
-        users = cls.query.all()
-        return users
-
-    # def get_totp_uri(self):
-    #     return f"otpauth://totp/{self.email}?secret={self.otp_secret}&issuer=Flask"
-
-    # def verify_totp(self, token):
-    #     return valid_totp(token, self.otp_secret)
-
     def check_password(self, password):
+        """Verifica la contraseña ingresada."""
         if self.auth_provider == 'google':
             return False
         return check_password_hash(self.password, password)

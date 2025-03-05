@@ -7,6 +7,9 @@ from dotenv import load_dotenv
 import os
 from config.db_config import db
 from config.routes_config import start_routes
+import logging
+from logging.handlers import RotatingFileHandler
+import os
 
 # Import models
 from config.models_config import *
@@ -26,6 +29,16 @@ def create_app():
     # Configuring the Flask app
     app = Flask(__name__)
     cors = CORS(app)
+
+    logging.basicConfig(
+        filename="logs/app.log",
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+    )
+
+    # Desactivar logs de Werkzeug (servidor de desarrollo)
+    log = logging.getLogger("werkzeug")
+    log.setLevel(logging.ERROR)
 
     app.secret_key = SECRET_KEY
     app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_CONNECTION_URI
